@@ -1,0 +1,323 @@
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+
+from app.documents.models import (
+    DocumentRequirement,
+    DocumentType
+)
+from app.auth.dependencies import get_current_user, require_hr
+from app.auth.models import User
+from app.database.session import get_db
+from app.documents.schemas import (
+    DocumentRequirementCreate,
+    DocumentRequirementResponse,
+    DocumentTypeCreate,
+    DocumentTypeResponse,
+    ChecklistItemResponse,
+    DocumentResponse,
+    HRDocumentResponse,
+    DocumentRejectRequest,
+    DocumentAccessResponse
+)
+from app.employees.models import Employee
+from app.documents.service import (
+    create_document_type,
+    create_requirement,
+    get_document_types,
+    get_employee_checklist,
+    upload_employee_document,
+    get_pending_documents,
+    approve_document,
+    reject_document,
+    get_document_access,
+    get_my_documents
+)
+
+
+router = APIRouter(
+    prefix="/documents",
+    tags=["Documents"]
+)
+
+
+@router.post(
+    "/types",
+    response_model=DocumentTypeResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def add_document_type(
+    data: DocumentTypeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    document_type = create_document_type(db, data)
+
+    if document_type is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Document type already exists"
+        )
+
+    return document_type
+
+@router.get(
+    "/types",
+    response_model=list[DocumentTypeResponse]
+)
+def list_document_types(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return get_document_types(db)
+
+@router.post(
+    "/requirements",
+    response_model=DocumentRequirementResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def add_requirement(
+    data: DocumentRequirementCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    requirement = create_requirement(db, data)
+
+    if requirement is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document type not found"
+        )
+
+    return requirement
+
+@router.get(
+    "/my/checklist",
+    response_model=list[ChecklistItemResponse]
+)
+def my_document_checklist(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    checklist = get_employee_checklist(
+        db,
+        current_user.id
+    )
+
+    if checklist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee profile not found"
+        )
+
+    return checklist
+
+@router.get(
+    "/my/submissions",
+    response_model=list[DocumentResponse]
+)
+def my_document_submissions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    documents = get_my_documents(
+        db,
+        current_user.id
+    )
+
+    if documents is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee profile not found"
+        )
+
+    return documents
+
+@router.post(
+    "/my/upload/{document_type_id}",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def upload_my_document(
+    document_type_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    employee = db.scalar(
+        select(Employee).where(
+            Employee.user_id == current_user.id
+        )
+    )
+
+    if employee is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee profile not found"
+        )
+
+    document_type = db.get(
+        DocumentType,
+        document_type_id
+    )
+
+    if document_type is None or not document_type.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document type not found"
+        )
+
+    requirement = db.scalar(
+        select(DocumentRequirement).where(
+            DocumentRequirement.document_type_id
+            == document_type_id,
+
+            DocumentRequirement.employment_type
+            == employee.employment_type.upper(),
+
+            DocumentRequirement.is_required.is_(True)
+        )
+    )
+
+    if requirement is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This document is not required for this employee"
+        )
+
+    allowed_types = {
+        "application/pdf",
+        "image/jpeg",
+        "image/png"
+    }
+
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF, JPEG and PNG files are allowed"
+        )
+
+    data = await file.read()
+
+    if len(data) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is empty"
+        )
+
+    max_size = 5 * 1024 * 1024
+
+    if len(data) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File size cannot exceed 5 MB"
+        )
+
+    return upload_employee_document(
+    db=db,
+    employee=employee,
+    document_type=document_type,
+    filename=file.filename or "document",
+    content_type=file.content_type,
+    file_data=data,
+    user_id=current_user.id
+)
+
+@router.get(
+    "/pending",
+    response_model=list[HRDocumentResponse]
+)
+def list_pending_documents(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    return get_pending_documents(db)
+
+@router.get(
+    "/{document_id}/access",
+    response_model=DocumentAccessResponse
+)
+def access_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = get_document_access(
+        db,
+        document_id,
+        current_user
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    if result is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this document"
+        )
+
+    return result
+
+@router.post(
+    "/{document_id}/approve",
+    response_model=DocumentResponse
+)
+def approve_employee_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    document = approve_document(
+        db,
+        document_id,
+        current_user.id
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    if document is False:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending documents can be approved"
+        )
+
+    return document
+
+@router.post(
+    "/{document_id}/reject",
+    response_model=DocumentResponse
+)
+def reject_employee_document(
+    document_id: int,
+    data: DocumentRejectRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    document = reject_document(
+        db,
+        document_id,
+        current_user.id,
+        data.reason
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    if document is False:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending documents can be rejected"
+        )
+
+    return document
