@@ -1,68 +1,77 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, require_hr
-from app.auth.models import User
-from app.auth.schemas import (
-    LoginRequest,
-    TokenResponse,
-    UserCreate,
-    UserResponse
-)
 import jwt
 from jwt.exceptions import InvalidTokenError
-from app.core.config import settings
+
+from app.auth.dependencies import get_current_user, require_hr
+from app.auth.models import AccountStatus, User, UserRole
+
+from app.auth.schemas import (
+    ActivateAccountRequest,
+    HRRegisterRequest,
+    LoginRequest,
+    LoginResponse,
+    TokenResponse,
+    TwoFADisableRequest,
+    TwoFALoginRequest,
+    TwoFASetupResponse,
+    TwoFAVerifyRequest,
+    UserResponse,
+)
+
 from app.auth.security import (
     create_access_token,
     create_2fa_challenge_token,
-    hash_password
+    hash_password,
 )
-from app.auth.schemas import LoginResponse
-from app.auth.schemas import (
-    TwoFASetupResponse,
-    TwoFAVerifyRequest,
-    TwoFALoginRequest
+
+from app.auth.service import (
+    authenticate_user,
+    create_hr_user,
 )
 
 from app.auth.two_factor import (
-    generate_totp_secret,
     generate_provisioning_uri,
-    verify_totp
+    generate_totp_secret,
+    verify_totp,
 )
-from app.auth.service import (
-    authenticate_user,
-    create_user,
-    get_user_by_email
-)
+
+from app.core.config import settings
 from app.database.session import get_db
 
-from sqlalchemy import select
-
-from app.auth.models import AccountStatus
-from app.auth.schemas import ActivateAccountRequest
-from app.auth.security import hash_password
 
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
 
-
 @router.post(
     "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED
 )
-def register(data: UserCreate, db: Session = Depends(get_db)):
+def register_hr(
+    data: HRRegisterRequest,
+    db: Session = Depends(get_db)
+):
+    existing_hr = db.scalar(
+        select(User).where(
+            User.role == UserRole.HR
+        )
+    )
 
-    if get_user_by_email(db, data.email):
+    if existing_hr is not None:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="HR registration is closed"
         )
 
-    return create_user(db, data)
-
+    return create_hr_user(
+        db,
+        data
+    )
 
 @router.post("/login", response_model=LoginResponse)
 def login(
@@ -135,6 +144,7 @@ def login_2fa(
     if (
         user is None
         or not user.is_active
+        or user.status != AccountStatus.ACTIVE
         or not user.is_2fa_enabled
         or user.totp_secret is None
     ):
@@ -225,14 +235,63 @@ def confirm_2fa(
         "message": "2FA enabled successfully"
     }
 
+@router.post("/2fa/disable")
+def disable_2fa(
+    data: TwoFADisableRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if (
+        not current_user.is_2fa_enabled
+        or current_user.totp_secret is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="2FA is not enabled"
+        )
+
+    if not verify_totp(
+        current_user.totp_secret,
+        data.otp
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP"
+        )
+
+    current_user.is_2fa_enabled = False
+    current_user.totp_secret = None
+
+    db.commit()
+
+    return {
+        "message": "2FA disabled successfully"
+    }
+
 @router.post("/activate")
 def activate_account(
     data: ActivateAccountRequest,
     db: Session = Depends(get_db)
 ):
-    user = db.scalar(
-        select(User).where(User.email == data.email)
-    )
+    try:
+        payload = jwt.decode(
+            data.token,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm]
+        )
+
+        if payload.get("purpose") != "account_activation":
+            raise InvalidTokenError()
+
+        user_id = int(payload["sub"])
+
+    except (InvalidTokenError, KeyError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired activation token"
+        )
+
+    user = db.get(User, user_id)
 
     if user is None:
         raise HTTPException(
@@ -240,22 +299,29 @@ def activate_account(
             detail="Invitation not found"
         )
 
-    if user.status != AccountStatus.INVITED:
+    if (
+    user.status != AccountStatus.INVITED
+    or user.is_active
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Account cannot be activated"
         )
 
-    user.hashed_password = hash_password(data.password)
+    user.hashed_password = hash_password(
+        data.password
+    )
+
     user.status = AccountStatus.ACTIVE
     user.is_active = True
+    user.totp_secret = None
+    user.is_2fa_enabled = False
 
     db.commit()
 
     return {
         "message": "Account activated successfully"
     }
-
 @router.get("/me", response_model=UserResponse)
 def me(
     current_user: User = Depends(get_current_user)

@@ -3,11 +3,9 @@ from pydantic import BaseModel, EmailStr, Field
 from app.auth.models import UserRole
 
 
-class UserCreate(BaseModel):
+class HRRegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
-    role: UserRole
-
 
 class UserResponse(BaseModel):
     id: int
@@ -31,7 +29,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 class ActivateAccountRequest(BaseModel):
-    email: EmailStr
+    token: str
     password: str = Field(min_length=8)
 
 class TwoFASetupResponse(BaseModel):
@@ -61,3 +59,10 @@ class LoginResponse(BaseModel):
     access_token: str | None = None
     challenge_token: str | None = None
     token_type: str = "bearer"
+
+class TwoFADisableRequest(BaseModel):
+    otp: str = Field(
+        min_length=6,
+        max_length=6,
+        pattern=r"^\d{6}$"
+    )

@@ -298,7 +298,12 @@ def upload_employee_document(
 
     db.add(document)
 
+    # Get document.id before committing
     db.flush()
+
+    # -------------------------
+    # Audit log
+    # -------------------------
 
     create_audit_log(
         db=db,
@@ -308,6 +313,35 @@ def upload_employee_document(
         details=f"Uploaded {filename}"
     )
 
+    # -------------------------
+    # Notify HR users
+    # -------------------------
+
+    hr_users = db.scalars(
+        select(User).where(
+            User.role == UserRole.HR
+        )
+    ).all()
+
+    employee_name = (
+        f"{employee.first_name} {employee.last_name}"
+    )
+
+    for hr_user in hr_users:
+        create_notification(
+            db=db,
+            user_id=hr_user.id,
+            notification_type=NotificationType.DOCUMENT_UPLOADED,
+            title="New Document Uploaded",
+            message=(
+                f"{employee_name} uploaded "
+                f"{document_type.name}. "
+                f"Review required."
+            ),
+            document_id=document.id
+        )
+
+    # Commit document + audit log + notifications together
     db.commit()
 
     db.refresh(document)

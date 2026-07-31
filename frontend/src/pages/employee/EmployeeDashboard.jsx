@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-function HRDashboard() {
+function EmployeeDashboard() {
   const navigate = useNavigate();
 
   const user = JSON.parse(
@@ -17,10 +17,29 @@ function HRDashboard() {
 
   return (
     <div>
-      <h1>HR Dashboard</h1>
+      <h1>Employee Dashboard</h1>
 
       <p>Logged in as: {user.email}</p>
       <p>Role: {user.role}</p>
+
+      <button
+        onClick={() =>
+          navigate("/employee/documents")
+        }
+      >
+        My Documents
+      </button>
+
+      <button
+        onClick={() =>
+          navigate("/employee/notifications")
+        }
+      >
+        Notifications
+      </button>
+
+      <br />
+      <br />
 
       <button onClick={handleLogout}>
         Logout
@@ -29,4 +48,4 @@ function HRDashboard() {
   );
 }
 
-export default HRDashboard;
+export default EmployeeDashboard;

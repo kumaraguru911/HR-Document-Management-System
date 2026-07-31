@@ -30,6 +30,24 @@ def create_access_token(user_id: int, role: str) -> str:
         algorithm=settings.jwt_algorithm
     )
 
+
+def create_activation_token(user_id: int) -> str:
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        hours=24
+    )
+
+    payload = {
+        "sub": str(user_id),
+        "purpose": "account_activation",
+        "exp": expires_at
+    }
+
+    return jwt.encode(
+        payload,
+        settings.jwt_secret,
+        algorithm=settings.jwt_algorithm
+    )
+
 def create_2fa_challenge_token(user_id: int) -> str:
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=5

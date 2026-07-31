@@ -1,19 +1,24 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth.models import User
-from app.auth.schemas import UserCreate
+from app.auth.models import AccountStatus, User, UserRole
 from app.auth.security import hash_password, verify_password
+from app.auth.schemas import HRRegisterRequest  
 
 def get_user_by_email(db: Session, email: str):
     statement = select(User).where(User.email == email)
     return db.scalar(statement)
 
-def create_user(db: Session, data: UserCreate):
+def create_hr_user(
+    db: Session,
+    data: HRRegisterRequest
+):
     user = User(
         email=data.email,
         hashed_password=hash_password(data.password),
-        role=data.role
+        role=UserRole.HR,
+        status=AccountStatus.ACTIVE,
+        is_active=True
     )
 
     db.add(user)
@@ -36,13 +41,20 @@ def authenticate_user(
     if user is None:
         return None
 
+    # Only active accounts are allowed to authenticate
+    if (
+        not user.is_active
+        or user.status != AccountStatus.ACTIVE
+    ):
+        return None
+
     if user.hashed_password is None:
         return None
-        
+
     if not verify_password(
         password,
         user.hashed_password
     ):
         return None
 
-    return user
+    return user 

@@ -2,6 +2,12 @@ from datetime import date
 
 from pydantic import BaseModel, EmailStr
 
+import enum
+
+
+class EmploymentType(str, enum.Enum):
+    FULL_TIME = "FULL_TIME"
+    CONTRACT = "CONTRACT"
 
 class EmployeeCreate(BaseModel):
     email: EmailStr
@@ -9,7 +15,7 @@ class EmployeeCreate(BaseModel):
     last_name: str
     department: str
     designation: str
-    employment_type: str
+    employment_type: EmploymentType
     joining_date: date
 
 
@@ -20,7 +26,7 @@ class EmployeeResponse(BaseModel):
     last_name: str
     department: str
     designation: str
-    employment_type: str
+    employment_type: EmploymentType
     joining_date: date
 
     model_config = {
@@ -28,6 +34,18 @@ class EmployeeResponse(BaseModel):
     }
 
 
-class AccountActivation(BaseModel):
+class EmployeeListResponse(BaseModel):
+    id: int
+    employee_code: str
     email: EmailStr
-    password: str
+
+    first_name: str
+    last_name: str
+
+    department: str
+    designation: str
+    employment_type: EmploymentType
+    joining_date: date
+
+    account_status: str
+    is_active: bool

@@ -53,3 +53,49 @@ def send_n8n_event(
         )
 
         return False
+
+def send_employee_invitation(
+    employee_email: str,
+    employee_name: str,
+    activation_url: str
+) -> bool:
+
+    webhook_url = settings.n8n_invitation_webhook_url
+
+
+    if not webhook_url:
+        logger.warning(
+            "n8n invitation webhook URL is not configured"
+        )
+        return False
+
+    payload = {
+        "event": "EMPLOYEE_INVITED",
+        "employee_email": employee_email,
+        "employee_name": employee_name,
+        "activation_url": activation_url
+    }
+
+    try:
+        response = httpx.post(
+            webhook_url,
+            json=payload,
+            timeout=5.0
+        )
+
+        response.raise_for_status()
+
+        logger.info(
+            "Employee invitation sent successfully: %s",
+            employee_email
+        )
+
+        return True
+
+    except httpx.HTTPError as exc:
+        logger.error(
+            "Failed to send employee invitation: %s",
+            exc
+        )
+
+        return False
