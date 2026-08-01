@@ -6,7 +6,7 @@ from app.documents.models import (
     DocumentRequirement,
     DocumentType
 )
-from app.auth.dependencies import get_current_user, require_hr
+from app.auth.dependencies import get_current_user, require_hr, require_employee
 from app.auth.models import User
 from app.database.session import get_db
 from app.documents.schemas import (
@@ -97,7 +97,7 @@ def add_requirement(
 )
 def my_document_checklist(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_employee)
 ):
     checklist = get_employee_checklist(
         db,
@@ -118,7 +118,7 @@ def my_document_checklist(
 )
 def my_document_submissions(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_employee)
 ):
     documents = get_my_documents(
         db,
@@ -142,7 +142,7 @@ async def upload_my_document(
     document_type_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_employee)
 ):
     employee = db.scalar(
         select(Employee).where(
@@ -213,7 +213,7 @@ async def upload_my_document(
             detail="File size cannot exceed 5 MB"
         )
 
-    return upload_employee_document(
+    document = upload_employee_document(
     db=db,
     employee=employee,
     document_type=document_type,
@@ -221,7 +221,15 @@ async def upload_my_document(
     content_type=file.content_type,
     file_data=data,
     user_id=current_user.id
-)
+    )
+
+    if document is False:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A pending document already exists for this document type."
+        )
+
+    return document
 
 @router.get(
     "/pending",

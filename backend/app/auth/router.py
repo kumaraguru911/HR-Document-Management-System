@@ -58,7 +58,8 @@ def register_hr(
 ):
     existing_hr = db.scalar(
         select(User).where(
-            User.role == UserRole.HR
+            User.role == UserRole.HR,
+            User.is_active.is_(True),
         )
     )
 
@@ -301,6 +302,7 @@ def activate_account(
 
     if (
     user.status != AccountStatus.INVITED
+    or user.role != UserRole.EMPLOYEE
     or user.is_active
     ):
         raise HTTPException(

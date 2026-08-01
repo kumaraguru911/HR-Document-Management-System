@@ -7,6 +7,11 @@ from app.employees.schemas import EmployeeCreate
 from app.auth.security import create_activation_token
 from app.automation.service import send_employee_invitation
 from app.core.config import settings
+from app.documents.models import (
+    Document,
+    DocumentStatus,
+    DocumentType
+)
 
 def create_employee(
     db: Session,

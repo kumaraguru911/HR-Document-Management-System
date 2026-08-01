@@ -5,7 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
-from app.auth.models import User, UserRole
+from app.auth.models import User, UserRole, AccountStatus
 from app.core.config import settings
 from app.database.session import get_db
 
@@ -27,6 +27,9 @@ def get_current_user(
             algorithms=[settings.jwt_algorithm]
         )
 
+        if payload.get("purpose") != "access":
+            raise InvalidTokenError()
+
         user_id = int(payload["sub"])
 
     except (InvalidTokenError, KeyError, ValueError):
@@ -37,7 +40,11 @@ def get_current_user(
 
     user = db.get(User, user_id)
 
-    if user is None or not user.is_active:
+    if (
+    user is None
+    or not user.is_active
+    or user.status != AccountStatus.ACTIVE
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User unavailable"
@@ -54,6 +61,18 @@ def require_hr(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="HR access required"
+        )
+
+    return current_user
+
+def require_employee(
+    current_user: User = Depends(get_current_user)
+) -> User:
+
+    if current_user.role != UserRole.EMPLOYEE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Employee access required"
         )
 
     return current_user

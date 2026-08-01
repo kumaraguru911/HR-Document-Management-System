@@ -273,6 +273,17 @@ def upload_employee_document(
     file_data: bytes,
     user_id: int
 ):
+    existing_pending = db.scalar(
+        select(Document).where(
+            Document.employee_id == employee.id,
+            Document.document_type_id == document_type.id,
+            Document.status == DocumentStatus.PENDING
+        )
+    )
+
+    if existing_pending:
+        return False
+        
     extension = Path(filename).suffix.lower()
 
     object_key = (

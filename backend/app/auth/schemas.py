@@ -2,10 +2,15 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.auth.models import UserRole
 
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class HRRegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
+
+    model_config = ConfigDict(
+        extra="forbid"
+    )
 
 class UserResponse(BaseModel):
     id: int
