@@ -1,8 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.auth.models import UserRole
-
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class HRRegisterRequest(BaseModel):
     email: EmailStr
@@ -18,10 +16,19 @@ class UserResponse(BaseModel):
     role: UserRole
     is_active: bool
     is_2fa_enabled: bool
+    first_name: str | None = None
+    last_name: str | None = None
+    is_employee_profile: bool = False
 
     model_config = {
         "from_attributes": True
     }
+
+
+class ProfileUpdateRequest(BaseModel):
+    email: EmailStr | None = None
+    first_name: str | None = None
+    last_name: str | None = None
 
 
 class LoginRequest(BaseModel):

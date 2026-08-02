@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 function EmployeeDashboard() {
   const navigate = useNavigate();
 
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
+  let user = {};
+  try {
+    user = JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    user = {};
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -16,34 +19,62 @@ function EmployeeDashboard() {
   };
 
   return (
-    <div>
-      <h1>Employee Dashboard</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Employee workspace</p>
+          <h1>Welcome, {user.first_name || "there"}</h1>
+          <p className="page-subtitle">
+            Keep your onboarding documents up to date and stay informed about review progress.
+          </p>
+        </div>
+        <div className="hero-panel-inline">
+          <p>Signed in as</p>
+          <strong>{user.email || "employee@company.com"}</strong>
+        </div>
+      </div>
 
-      <p>Logged in as: {user.email}</p>
-      <p>Role: {user.role}</p>
+      <div className="card-grid">
+        <div className="metric-card">
+          <p className="eyebrow">Document readiness</p>
+          <strong>3 / 5</strong>
+          <p>Required documents currently ready.</p>
+        </div>
+        <div className="metric-card">
+          <p className="eyebrow">Recent updates</p>
+          <strong>2</strong>
+          <p>Notifications waiting for your attention.</p>
+        </div>
+        <div className="metric-card">
+          <p className="eyebrow">Status</p>
+          <strong>On track</strong>
+          <p>Most of your checklist is already complete.</p>
+        </div>
+      </div>
 
-      <button
-        onClick={() =>
-          navigate("/employee/documents")
-        }
-      >
-        My Documents
-      </button>
+      <div className="content-grid">
+        <section className="panel-card">
+          <div className="panel-head">
+            <h3>Next steps</h3>
+          </div>
+          <ul className="stack-list">
+            <li>Upload any remaining required documents in the checklist.</li>
+            <li>Monitor the review status after each submission.</li>
+            <li>Check notifications for feedback or missing information.</li>
+          </ul>
+        </section>
 
-      <button
-        onClick={() =>
-          navigate("/employee/notifications")
-        }
-      >
-        Notifications
-      </button>
-
-      <br />
-      <br />
-
-      <button onClick={handleLogout}>
-        Logout
-      </button>
+        <section className="panel-card">
+          <div className="panel-head">
+            <h3>Quick actions</h3>
+          </div>
+          <div className="stack">
+            <button className="primary-btn" onClick={() => navigate("/employee/documents")}>Go to my documents</button>
+            <button className="secondary-btn" onClick={() => navigate("/employee/notifications")}>Open notifications</button>
+            <button className="ghost-btn" onClick={handleLogout}>Sign out</button>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

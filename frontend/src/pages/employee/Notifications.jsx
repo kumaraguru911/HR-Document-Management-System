@@ -12,22 +12,12 @@ function Notifications() {
   const fetchNotifications = async () => {
     try {
       setError("");
-
       const response = await api.get("/notifications/my");
-
-      console.log("Notifications:", response.data);
-
       setNotifications(response.data);
     } catch (err) {
       console.error("Notification fetch error:", err);
-
       const detail = err.response?.data?.detail;
-
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Unable to load notifications."
-      );
+      setError(typeof detail === "string" ? detail : "Unable to load notifications.");
     } finally {
       setLoading(false);
     }
@@ -40,115 +30,62 @@ function Notifications() {
   const handleMarkAsRead = async (notificationId) => {
     try {
       setError("");
-
-      await api.patch(
-        `/notifications/${notificationId}/read`
-      );
-
-      // Update locally instead of fetching everything again
+      await api.patch(`/notifications/${notificationId}/read`);
       setNotifications((previous) =>
         previous.map((notification) =>
-          notification.id === notificationId
-            ? {
-                ...notification,
-                is_read: true,
-              }
-            : notification
+          notification.id === notificationId ? { ...notification, is_read: true } : notification
         )
       );
     } catch (err) {
       console.error("Mark as read error:", err);
-
       const detail = err.response?.data?.detail;
-
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Unable to mark notification as read."
-      );
+      setError(typeof detail === "string" ? detail : "Unable to mark notification as read.");
     }
   };
 
   if (loading) {
-    return (
-      <div>
-        <h1>Notifications</h1>
-        <p>Loading...</p>
-      </div>
-    );
+    return <div className="empty-state">Loading your inbox...</div>;
   }
 
   return (
-    <div>
-      <h1>Notifications</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Notifications</p>
+          <h1>Your inbox</h1>
+          <p className="page-subtitle">Keep track of approvals, rejections, and document requests in one place.</p>
+        </div>
+        <button className="secondary-btn" onClick={() => navigate("/employee")}>Back to dashboard</button>
+      </div>
 
-      <button onClick={() => navigate("/employee")}>
-        Back to Dashboard
-      </button>
-
-      {error && <p>{error}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
 
       {notifications.length === 0 ? (
-        <p>No notifications.</p>
+        <div className="empty-state">No notifications yet.</div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Message</th>
-              <th>Type</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
+        <div className="notification-list">
+          {notifications.map((notification) => (
+            <div className={`notification-card ${notification.is_read ? "" : "unread"}`} key={notification.id}>
+              <div>
+                <h3>{notification.title}</h3>
+                <p>{notification.message}</p>
+                <div className="notification-meta">
+                  <span>{notification.type?.replace(/_/g, " ") || "Update"}</span>
+                  <span>•</span>
+                  <span>{notification.created_at ? new Date(notification.created_at).toLocaleString() : "-"}</span>
+                </div>
+              </div>
 
-          <tbody>
-            {notifications.map((notification) => (
-              <tr key={notification.id}>
-                <td>
-                  {notification.title}
-                </td>
-
-                <td>
-                  {notification.message}
-                </td>
-
-                <td>
-                  {notification.type}
-                </td>
-
-                <td>
-                  {notification.created_at
-                    ? new Date(
-                        notification.created_at
-                      ).toLocaleString()
-                    : "-"}
-                </td>
-
-                <td>
-                  {notification.is_read
-                    ? "READ"
-                    : "UNREAD"}
-                </td>
-
-                <td>
-                  {!notification.is_read ? (
-                    <button
-                      onClick={() =>
-                        handleMarkAsRead(notification.id)
-                      }
-                    >
-                      Mark as Read
-                    </button>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              {!notification.is_read ? (
+                <button className="secondary-btn" onClick={() => handleMarkAsRead(notification.id)}>
+                  Mark as read
+                </button>
+              ) : (
+                <span className="status-badge approved">Read</span>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

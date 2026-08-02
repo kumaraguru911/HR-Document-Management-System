@@ -6,29 +6,17 @@ function PendingDocuments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rejectReasons, setRejectReasons] = useState({});
+  const [processingId, setProcessingId] = useState(null);
 
-  // =========================
-  // Fetch Pending Documents
-  // =========================
   const fetchPendingDocuments = async () => {
     try {
       setError("");
-
       const response = await api.get("/documents/pending");
-
-      console.log("Pending documents:", response.data);
-
       setDocuments(response.data);
     } catch (err) {
       console.error("Failed to fetch pending documents:", err);
-
       const detail = err.response?.data?.detail;
-
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Unable to load pending documents."
-      );
+      setError(typeof detail === "string" ? detail : "Unable to load pending documents.");
     } finally {
       setLoading(false);
     }
@@ -38,19 +26,10 @@ function PendingDocuments() {
     fetchPendingDocuments();
   }, []);
 
-  // =========================
-  // View Document
-  // =========================
   const handleView = async (documentId) => {
     try {
       setError("");
-
-      const response = await api.get(
-        `/documents/${documentId}/access`
-      );
-
-      console.log("Document access response:", response.data);
-
+      const response = await api.get(`/documents/${documentId}/access`);
       const url = response.data.url;
 
       if (!url) {
@@ -58,69 +37,37 @@ function PendingDocuments() {
         return;
       }
 
-      console.log("Opening URL:", url);
-
       const link = document.createElement("a");
-
       link.href = url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-
       document.body.appendChild(link);
-
       link.click();
-
       document.body.removeChild(link);
     } catch (err) {
-      console.error(
-        "Document access error:",
-        err.response?.data || err
-      );
-
+      console.error("Document access error:", err.response?.data || err);
       const detail = err.response?.data?.detail;
-
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Unable to access document."
-      );
+      setError(typeof detail === "string" ? detail : "Unable to access document.");
     }
   };
 
-  // =========================
-  // Approve Document
-  // =========================
   const handleApprove = async (documentId) => {
     try {
       setError("");
-
-      await api.post(
-        `/documents/${documentId}/approve`
-      );
-
-      console.log("Document approved:", documentId);
-
-      // Reload pending documents
+      setProcessingId(documentId);
+      await api.post(`/documents/${documentId}/approve`);
       await fetchPendingDocuments();
     } catch (err) {
       console.error("Approve error:", err);
-
       const detail = err.response?.data?.detail;
-
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Unable to approve document."
-      );
+      setError(typeof detail === "string" ? detail : "Unable to approve document.");
+    } finally {
+      setProcessingId(null);
     }
   };
 
-  // =========================
-  // Reject Document
-  // =========================
   const handleReject = async (documentId) => {
-    const reason =
-      rejectReasons[documentId]?.trim();
+    const reason = rejectReasons[documentId]?.trim();
 
     if (!reason) {
       setError("Please enter a rejection reason.");
@@ -129,184 +76,82 @@ function PendingDocuments() {
 
     try {
       setError("");
-
-      await api.post(
-        `/documents/${documentId}/reject`,
-        {
-          reason,
-        }
-      );
-
-      console.log("Document rejected:", documentId);
-
-      // Clear rejection reason
-      setRejectReasons((prev) => ({
-        ...prev,
-        [documentId]: "",
-      }));
-
-      // Reload pending documents
+      setProcessingId(documentId);
+      await api.post(`/documents/${documentId}/reject`, { reason });
+      setRejectReasons((prev) => ({ ...prev, [documentId]: "" }));
       await fetchPendingDocuments();
     } catch (err) {
       console.error("Reject error:", err);
-
       const detail = err.response?.data?.detail;
-
-      setError(
-        typeof detail === "string"
-          ? detail
-          : "Unable to reject document."
-      );
+      setError(typeof detail === "string" ? detail : "Unable to reject document.");
+    } finally {
+      setProcessingId(null);
     }
   };
 
-  // =========================
-  // Loading
-  // =========================
   if (loading) {
-    return (
-      <div>
-        <h1>Pending Documents</h1>
-        <p>Loading...</p>
-      </div>
-    );
+    return <div className="empty-state">Loading review queue...</div>;
   }
 
-  // =========================
-  // UI
-  // =========================
   return (
-    <div>
-      <h1>Pending Documents</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Review queue</p>
+          <h1>Pending document review</h1>
+          <p className="page-subtitle">Review employee submissions, inspect files, and approve or reject them with clear context.</p>
+        </div>
+      </div>
 
-      {error && <p>{error}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
 
       {documents.length === 0 ? (
-        <p>No pending documents.</p>
+        <div className="empty-state">No pending documents right now.</div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Employee Code</th>
-              <th>Document</th>
-              <th>Filename</th>
-              <th>Size</th>
-              <th>Uploaded</th>
-              <th>Status</th>
-              <th>Review</th>
-            </tr>
-          </thead>
+        <div className="notification-list">
+          {documents.map((doc) => (
+            <div className="notification-card" key={doc.id}>
+              <div>
+                <h3>{doc.document_type_name}</h3>
+                <p>{doc.original_filename}</p>
+                <div className="notification-meta">
+                  <span>{doc.employee_name}</span>
+                  <span>•</span>
+                  <span>{doc.employee_code}</span>
+                  <span>•</span>
+                  <span>{new Date(doc.uploaded_at).toLocaleString()}</span>
+                </div>
+              </div>
 
-          <tbody>
-            {documents.map((doc) => (
-              <tr key={doc.id}>
-
-                {/* Employee */}
-                <td>
-                  {doc.employee_name}
-                </td>
-
-                {/* Employee Code */}
-                <td>
-                  {doc.employee_code}
-                </td>
-
-                {/* Document Type */}
-                <td>
-                  {doc.document_type_name}
-                </td>
-
-                {/* Filename */}
-                <td>
-                  {doc.original_filename}
-                </td>
-
-                {/* File Size */}
-                <td>
-                  {doc.file_size
-                    ? `${(
-                        doc.file_size / 1024
-                      ).toFixed(1)} KB`
-                    : "-"}
-                </td>
-
-                {/* Uploaded Time */}
-                <td>
-                  {doc.uploaded_at
-                    ? new Date(
-                        doc.uploaded_at
-                      ).toLocaleString()
-                    : "-"}
-                </td>
-
-                {/* Status */}
-                <td>
-                  {doc.status}
-                </td>
-
-                {/* Review Actions */}
-                <td>
-
-                  {/* View */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleView(doc.id)
-                    }
-                  >
+              <div className="stack">
+                <div className="doc-meta">
+                  <span className={`status-badge ${doc.status?.toLowerCase() || "pending"}`}>{doc.status}</span>
+                  <span>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "-"}</span>
+                </div>
+                <div className="upload-box">
+                  <button className="secondary-btn" type="button" onClick={() => handleView(doc.id)}>
                     View
                   </button>
-
-                  {" "}
-
-                  {/* Approve */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleApprove(doc.id)
-                    }
-                  >
-                    Approve
+                  <button className="primary-btn" type="button" disabled={processingId === doc.id} onClick={() => handleApprove(doc.id)}>
+                    {processingId === doc.id ? "Processing..." : "Approve"}
                   </button>
-
-                  <br />
-
-                  {/* Rejection Reason */}
+                </div>
+                <div className="upload-box">
                   <input
+                    className="field"
                     type="text"
                     placeholder="Rejection reason"
-                    value={
-                      rejectReasons[doc.id] || ""
-                    }
-                    onChange={(e) =>
-                      setRejectReasons(
-                        (prev) => ({
-                          ...prev,
-                          [doc.id]:
-                            e.target.value,
-                        })
-                      )
-                    }
+                    value={rejectReasons[doc.id] || ""}
+                    onChange={(e) => setRejectReasons((prev) => ({ ...prev, [doc.id]: e.target.value }))}
                   />
-
-                  {" "}
-
-                  {/* Reject */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleReject(doc.id)
-                    }
-                  >
+                  <button className="secondary-btn" type="button" disabled={processingId === doc.id} onClick={() => handleReject(doc.id)}>
                     Reject
                   </button>
-
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

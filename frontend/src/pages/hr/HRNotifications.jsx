@@ -12,15 +12,10 @@ function HRNotifications() {
       setError("");
 
       const response = await api.get("/notifications/my");
-
       setNotifications(response.data);
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.detail ||
-        "Failed to load notifications"
-      );
+      setError(err.response?.data?.detail || "Failed to load notifications");
     } finally {
       setLoading(false);
     }
@@ -33,99 +28,60 @@ function HRNotifications() {
   const handleMarkRead = async (notificationId) => {
     try {
       setError("");
-
-      await api.patch(
-        `/notifications/${notificationId}/read`
-      );
-
+      await api.patch(`/notifications/${notificationId}/read`);
       setNotifications((current) =>
         current.map((notification) =>
-          notification.id === notificationId
-            ? {
-                ...notification,
-                is_read: true,
-              }
-            : notification
+          notification.id === notificationId ? { ...notification, is_read: true } : notification
         )
       );
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.detail ||
-        "Failed to mark notification as read"
-      );
+      setError(err.response?.data?.detail || "Failed to mark notification as read");
     }
   };
 
   if (loading) {
-    return (
-      <div>
-        <h1>HR Notifications</h1>
-        <p>Loading notifications...</p>
-      </div>
-    );
+    return <div className="empty-state">Loading notifications...</div>;
   }
 
   return (
-    <div>
-      <h1>HR Notifications</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Notifications</p>
+          <h1>Team updates</h1>
+          <p className="page-subtitle">Monitor new submissions and document outcomes from a single inbox.</p>
+        </div>
+      </div>
 
-      {error && <p>{error}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
 
       {notifications.length === 0 ? (
-        <p>No notifications.</p>
+        <div className="empty-state">No notifications yet.</div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Message</th>
-              <th>Type</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
+        <div className="notification-list">
+          {notifications.map((notification) => (
+            <div className={`notification-card ${notification.is_read ? "" : "unread"}`} key={notification.id}>
+              <div>
+                <h3>{notification.title}</h3>
+                <p>{notification.message}</p>
+                <div className="notification-meta">
+                  <span>{notification.type?.replace(/_/g, " ") || "Update"}</span>
+                  <span>•</span>
+                  <span>{new Date(notification.created_at).toLocaleString()}</span>
+                </div>
+              </div>
 
-          <tbody>
-            {notifications.map((notification) => (
-              <tr key={notification.id}>
-                <td>{notification.title}</td>
-
-                <td>{notification.message}</td>
-
-                <td>{notification.type}</td>
-
-                <td>
-                  {new Date(
-                    notification.created_at
-                  ).toLocaleString()}
-                </td>
-
-                <td>
-                  {notification.is_read
-                    ? "READ"
-                    : "UNREAD"}
-                </td>
-
-                <td>
-                  {!notification.is_read ? (
-                    <button
-                      onClick={() =>
-                        handleMarkRead(notification.id)
-                      }
-                    >
-                      Mark as Read
-                    </button>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              {!notification.is_read ? (
+                <button className="secondary-btn" onClick={() => handleMarkRead(notification.id)}>
+                  Mark as read
+                </button>
+              ) : (
+                <span className="status-badge approved">Read</span>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

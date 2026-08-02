@@ -13,6 +13,7 @@ from app.auth.schemas import (
     HRRegisterRequest,
     LoginRequest,
     LoginResponse,
+    ProfileUpdateRequest,
     TokenResponse,
     TwoFADisableRequest,
     TwoFALoginRequest,
@@ -40,6 +41,7 @@ from app.auth.two_factor import (
 
 from app.core.config import settings
 from app.database.session import get_db
+from app.employees.models import Employee
 
 
 router = APIRouter(
@@ -324,11 +326,70 @@ def activate_account(
     return {
         "message": "Account activated successfully"
     }
+def _build_user_response(db: Session, current_user: User) -> UserResponse:
+    employee_profile = db.scalar(
+        select(Employee).where(Employee.user_id == current_user.id)
+    )
+
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        role=current_user.role,
+        is_active=current_user.is_active,
+        is_2fa_enabled=current_user.is_2fa_enabled,
+        first_name=employee_profile.first_name if employee_profile else None,
+        last_name=employee_profile.last_name if employee_profile else None,
+        is_employee_profile=employee_profile is not None,
+    )
+
+
 @router.get("/me", response_model=UserResponse)
 def me(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    return current_user
+    return _build_user_response(db, current_user)
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_me(
+    data: ProfileUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if data.email is not None and data.email != current_user.email:
+        existing_user = db.scalar(
+            select(User).where(User.email == data.email, User.id != current_user.id)
+        )
+
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already in use"
+            )
+
+        current_user.email = data.email
+
+    employee_profile = db.scalar(
+        select(Employee).where(Employee.user_id == current_user.id)
+    )
+
+    if data.first_name is not None or data.last_name is not None:
+        if employee_profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee profile not found for name updates"
+            )
+
+        if data.first_name is not None:
+            employee_profile.first_name = data.first_name
+
+        if data.last_name is not None:
+            employee_profile.last_name = data.last_name
+
+    db.commit()
+
+    return _build_user_response(db, current_user)
 
 
 @router.get("/hr-test")
