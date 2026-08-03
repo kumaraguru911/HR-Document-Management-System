@@ -323,8 +323,14 @@ def activate_account(
 
     db.commit()
 
+    employee_profile = db.scalar(
+        select(Employee).where(Employee.user_id == user.id)
+    )
+
     return {
-        "message": "Account activated successfully"
+        "message": "Account activated successfully",
+        "first_name": employee_profile.first_name if employee_profile else None,
+        "last_name": employee_profile.last_name if employee_profile else None,
     }
 def _build_user_response(db: Session, current_user: User) -> UserResponse:
     employee_profile = db.scalar(

@@ -9,6 +9,7 @@ import "./App.css";
 
 import Login from "./pages/Login";
 import TwoFactor from "./pages/TwoFactor";
+import ActivateAccount from "./pages/ActivateAccount";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
@@ -37,6 +38,7 @@ function App() {
         {/* Authentication */}
         <Route path="/login" element={<Login />} />
         <Route path="/2fa" element={<TwoFactor />} />
+        <Route path="/activate" element={<ActivateAccount />} />
 
         {/* ================= HR ================= */}
 
