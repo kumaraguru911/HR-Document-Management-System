@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import TwoFactor from "./pages/TwoFactor";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import SplashScreen from "./components/SplashScreen";
 
 import HRLayout from "./layouts/HRLayout";
 
@@ -31,10 +32,7 @@ function App() {
       <Routes>
 
         {/* Default */}
-        <Route
-          path="/"
-          element={<Navigate to="/login" replace />}
-        />
+        <Route path="/" element={<SplashScreen />} />
 
         {/* Authentication */}
         <Route path="/login" element={<Login />} />
