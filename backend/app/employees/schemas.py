@@ -51,3 +51,23 @@ class EmployeeListResponse(BaseModel):
 
     account_status: str
     is_active: bool
+
+
+class EmployeeInviteResponse(BaseModel):
+    id: int
+    user_id: int
+    employee_code: str
+    email: EmailStr
+
+    first_name: str
+    last_name: str
+
+    department: str
+    designation: str
+    employment_type: EmploymentType
+    joining_date: date
+
+    account_status: str
+    is_active: bool
+
+    invitation_sent: bool

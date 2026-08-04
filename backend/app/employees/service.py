@@ -73,13 +73,60 @@ def create_employee(
     )
 
     # Send invitation through n8n
-    send_employee_invitation(
+    invitation_sent = send_employee_invitation(
         employee_email=user.email,
         employee_name=employee_name,
         activation_url=activation_url
     )
 
-    return employee
+    return employee, invitation_sent
+
+
+def resend_invitation(
+    db: Session,
+    employee_id: int
+):
+    employee = db.get(
+        Employee,
+        employee_id
+    )
+
+    if employee is None:
+        return None
+
+    user = employee.user
+
+    # Only invited (or inactive) employees can be re-invited
+    if (
+        user.status != AccountStatus.INVITED
+        and user.status != AccountStatus.INACTIVE
+    ):
+        return False
+
+    # Generate a fresh activation token
+    activation_token = create_activation_token(
+        user.id
+    )
+
+    # Build frontend activation URL
+    activation_url = (
+        f"{settings.frontend_url.rstrip('/')}"
+        f"/activate?token={activation_token}"
+    )
+
+    employee_name = (
+        f"{employee.first_name} "
+        f"{employee.last_name}"
+    )
+
+    # Send invitation through n8n
+    invitation_sent = send_employee_invitation(
+        employee_email=user.email,
+        employee_name=employee_name,
+        activation_url=activation_url
+    )
+
+    return employee, invitation_sent
 
 def get_employees(
     db: Session
@@ -167,7 +214,20 @@ def deactivate_employee(
     db.commit()
     db.refresh(employee)
 
-    return employee
+    return {
+        "id": employee.id,
+        "user_id": employee.user_id,
+        "employee_code": employee.employee_code,
+        "email": employee.user.email,
+        "first_name": employee.first_name,
+        "last_name": employee.last_name,
+        "department": employee.department,
+        "designation": employee.designation,
+        "employment_type": employee.employment_type,
+        "joining_date": employee.joining_date,
+        "account_status": employee.user.status.value,
+        "is_active": employee.user.is_active,
+    }
 
 
 def reactivate_employee(
@@ -201,4 +261,17 @@ def reactivate_employee(
     db.commit()
     db.refresh(employee)
 
-    return employee
+    return {
+        "id": employee.id,
+        "user_id": employee.user_id,
+        "employee_code": employee.employee_code,
+        "email": employee.user.email,
+        "first_name": employee.first_name,
+        "last_name": employee.last_name,
+        "department": employee.department,
+        "designation": employee.designation,
+        "employment_type": employee.employment_type,
+        "joining_date": employee.joining_date,
+        "account_status": employee.user.status.value,
+        "is_active": employee.user.is_active,
+    }

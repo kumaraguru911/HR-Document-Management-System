@@ -7,6 +7,7 @@ from app.database.session import get_db
 
 from app.employees.schemas import (
     EmployeeCreate,
+    EmployeeInviteResponse,
     EmployeeListResponse,
     EmployeeResponse,
 )
@@ -17,6 +18,7 @@ from app.employees.service import (
     get_employee_by_id,
     get_employees,
     reactivate_employee,
+    resend_invitation,
 )
 
 
@@ -29,7 +31,7 @@ router = APIRouter(
 # HR - Create employee
 @router.post(
     "",
-    response_model=EmployeeResponse,
+    response_model=EmployeeInviteResponse,
     status_code=status.HTTP_201_CREATED
 )
 def add_employee(
@@ -37,18 +39,36 @@ def add_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_hr)
 ):
-    employee = create_employee(
+    result = create_employee(
         db,
         data
     )
 
-    if employee is None:
+    if result is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already exists"
         )
 
-    return employee
+    employee, invitation_sent = result
+
+    return {
+        **{
+            "id": employee.id,
+            "user_id": employee.user_id,
+            "employee_code": employee.employee_code,
+            "email": employee.user.email,
+            "first_name": employee.first_name,
+            "last_name": employee.last_name,
+            "department": employee.department,
+            "designation": employee.designation,
+            "employment_type": employee.employment_type,
+            "joining_date": employee.joining_date,
+            "account_status": employee.user.status.value,
+            "is_active": employee.user.is_active,
+        },
+        "invitation_sent": invitation_sent,
+    }
 
 
 # HR - List all employees
@@ -93,27 +113,24 @@ def deactivate_employee_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_hr)
 ):
-    employee = deactivate_employee(
+    employee_data = deactivate_employee(
         db,
         employee_id
     )
 
-    if employee is None:
+    if employee_data is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Employee not found"
         )
 
-    if employee is False:
+    if employee_data is False:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only active employees can be deactivated"
         )
 
-    return get_employee_by_id(
-        db,
-        employee_id
-    )
+    return employee_data
 
 
 @router.patch(
@@ -125,24 +142,68 @@ def reactivate_employee_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_hr)
 ):
-    employee = reactivate_employee(
+    employee_data = reactivate_employee(
         db,
         employee_id
     )
 
-    if employee is None:
+    if employee_data is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Employee not found"
         )
 
-    if employee is False:
+    if employee_data is False:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only inactive employees can be reactivated"
         )
 
-    return get_employee_by_id(
+    return employee_data
+
+
+@router.post(
+    "/{employee_id}/resend-invitation",
+    response_model=EmployeeInviteResponse
+)
+def resend_employee_invitation(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    result = resend_invitation(
         db,
         employee_id
     )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Employee not found"
+        )
+
+    if result is False:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only invited or inactive employees can be re-invited"
+        )
+
+    employee, invitation_sent = result
+
+    return {
+        **{
+            "id": employee.id,
+            "user_id": employee.user_id,
+            "employee_code": employee.employee_code,
+            "email": employee.user.email,
+            "first_name": employee.first_name,
+            "last_name": employee.last_name,
+            "department": employee.department,
+            "designation": employee.designation,
+            "employment_type": employee.employment_type,
+            "joining_date": employee.joining_date,
+            "account_status": employee.user.status.value,
+            "is_active": employee.user.is_active,
+        },
+        "invitation_sent": invitation_sent,
+    }

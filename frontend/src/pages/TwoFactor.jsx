@@ -137,6 +137,9 @@ function TwoFactor() {
       window.setTimeout(() => {
         if (user.role === "HR") {
           navigate("/hr");
+        } else if (user.role === "EMPLOYEE" && !user.is_2fa_enabled) {
+          // New employee who hasn't set up 2FA yet
+          navigate("/setup-2fa");
         } else if (user.role === "EMPLOYEE") {
           navigate("/employee");
         } else {
