@@ -218,6 +218,57 @@ def get_document_access(
         "expires_in": 300
     }
 
+def get_employee_documents(db: Session, employee_id: int):
+    employee = db.get(Employee, employee_id)
+
+    if employee is None:
+        return []
+
+    documents = db.scalars(
+        select(Document)
+        .where(
+            Document.employee_id == employee.id
+        )
+        .order_by(Document.uploaded_at.desc())
+    ).all()
+
+    return [
+        {
+            "id": document.id,
+
+            "employee_id": document.employee.id,
+            "employee_code": document.employee.employee_code,
+            "employee_name":
+                f"{document.employee.first_name} "
+                f"{document.employee.last_name}",
+
+            "document_type_id": document.document_type.id,
+            "document_type_name":
+                document.document_type.name,
+
+            "original_filename":
+                document.original_filename,
+
+            "content_type":
+                document.content_type,
+
+            "file_size":
+                document.file_size,
+
+            "status":
+                document.status,
+
+            "uploaded_at":
+                document.uploaded_at,
+
+            "rejection_reason":
+                document.rejection_reason
+        }
+
+        for document in documents
+    ]
+
+
 def get_pending_documents(db: Session):
 
     documents = db.scalars(

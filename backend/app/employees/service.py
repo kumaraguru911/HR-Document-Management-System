@@ -92,6 +92,7 @@ def get_employees(
     return [
         {
             "id": employee.id,
+            "user_id": employee.user_id,
             "employee_code": employee.employee_code,
             "email": employee.user.email,
 
@@ -123,6 +124,7 @@ def get_employee_by_id(
 
     return {
         "id": employee.id,
+        "user_id": employee.user_id,
         "employee_code": employee.employee_code,
         "email": employee.user.email,
 

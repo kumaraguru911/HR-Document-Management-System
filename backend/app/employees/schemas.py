@@ -21,6 +21,7 @@ class EmployeeCreate(BaseModel):
 
 class EmployeeResponse(BaseModel):
     id: int
+    user_id: int
     employee_code: str
     first_name: str
     last_name: str
@@ -36,6 +37,7 @@ class EmployeeResponse(BaseModel):
 
 class EmployeeListResponse(BaseModel):
     id: int
+    user_id: int
     employee_code: str
     email: EmailStr
 

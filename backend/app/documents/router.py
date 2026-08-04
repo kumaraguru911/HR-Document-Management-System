@@ -28,6 +28,7 @@ from app.documents.service import (
     get_employee_checklist,
     upload_employee_document,
     get_pending_documents,
+    get_employee_documents,
     approve_document,
     reject_document,
     get_document_access,
@@ -240,6 +241,17 @@ def list_pending_documents(
     current_user: User = Depends(require_hr)
 ):
     return get_pending_documents(db)
+
+@router.get(
+    "/employee/{employee_id}",
+    response_model=list[HRDocumentResponse]
+)
+def list_employee_documents(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    return get_employee_documents(db, employee_id)
 
 @router.get(
     "/{document_id}/access",
