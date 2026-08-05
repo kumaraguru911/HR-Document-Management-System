@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi.responses import StreamingResponse
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.documents.models import (
     DocumentRequirement,
-    DocumentType
+    DocumentType,
+    Document
 )
 from app.auth.dependencies import get_current_user, require_hr, require_employee
 from app.auth.models import User
@@ -34,7 +37,9 @@ from app.documents.service import (
     get_document_access,
     get_my_documents
 )
+from app.storage.minio import stream_object
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/documents",
@@ -281,6 +286,54 @@ def access_document(
         )
 
     return result
+
+@router.get(
+    "/{document_id}/download"
+)
+def download_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    document = db.get(Document, document_id)
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    result = get_document_access(
+        db,
+        document_id,
+        current_user
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    if result is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this document"
+        )
+
+    try:
+        obj = stream_object(document.object_key)
+        return StreamingResponse(
+            obj.stream(32 * 1024),
+            media_type=document.content_type,
+            headers={"Content-Disposition": f'inline; filename="{document.original_filename}"'}
+        )
+    except Exception as e:
+        logger.exception("Failed to stream document %s: %s", document.id, e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve document file"
+        )
 
 @router.post(
     "/{document_id}/approve",

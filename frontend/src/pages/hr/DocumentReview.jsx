@@ -73,6 +73,7 @@ function DocumentReview() {
               setDoc({
                 id: id,
                 original_filename: accessRes.data.filename || "",
+                content_type: accessRes.data.content_type || "",
                 document_type_name: "Document",
                 employee_name: "Employee",
                 status: "PENDING",
@@ -181,7 +182,7 @@ function DocumentReview() {
   if (loading) return <div className="empty-state">Loading document...</div>;
   if (!doc) return <div className="empty-state">Document not found.</div>;
 
-  const isPdf = previewUrl.toLowerCase().endsWith(".pdf");
+  const isPdf = doc.content_type === "application/pdf" || previewUrl.toLowerCase().endsWith(".pdf");
 
   return (
     <div className="page-shell document-review-shell">

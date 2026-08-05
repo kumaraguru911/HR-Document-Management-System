@@ -41,12 +41,9 @@ def get_presigned_download_url(
         expires=timedelta(minutes=expires_minutes)
     )
 
-def get_presigned_download_url(
-    object_key: str,
-    expires_minutes: int = 5
-) -> str:
-    return minio_client.presigned_get_object(
+
+def stream_object(object_key: str):
+    return minio_client.get_object(
         bucket_name=settings.minio_bucket,
-        object_name=object_key,
-        expires=timedelta(minutes=expires_minutes)
+        object_name=object_key
     )
