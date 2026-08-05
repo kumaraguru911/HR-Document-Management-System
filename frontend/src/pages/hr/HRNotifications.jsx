@@ -1,10 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
+
+const notificationTypeOptions = [
+  { value: "ALL", label: "All notifications" },
+  { value: "DOCUMENT_APPROVED", label: "Approved" },
+  { value: "DOCUMENT_REJECTED", label: "Rejected" },
+  { value: "DOCUMENT_REQUIRED", label: "Action required" },
+  { value: "DOCUMENT_UPLOADED", label: "Uploaded" },
+];
+
+const notificationIcons = {
+  DOCUMENT_APPROVED: "✅",
+  DOCUMENT_REJECTED: "❌",
+  DOCUMENT_REQUIRED: "📌",
+  DOCUMENT_UPLOADED: "📤",
+};
 
 function HRNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
 
   const loadNotifications = async () => {
     try {
@@ -40,6 +58,69 @@ function HRNotifications() {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    try {
+      setError("");
+      await api.patch("/notifications/read-all");
+      setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.detail || "Failed to mark all notifications as read");
+    }
+  };
+
+  const handleOpenNotification = async (notification) => {
+    if (!notification.is_read) {
+      await handleMarkRead(notification.id);
+    }
+
+    if (notification.document_id) {
+      navigate(`/hr/documents/${notification.document_id}`);
+    }
+  };
+
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notification) => {
+      const lowerSearch = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        !lowerSearch ||
+        `${notification.title} ${notification.message}`.toLowerCase().includes(lowerSearch);
+      const matchesType =
+        typeFilter === "ALL" || notification.type === typeFilter;
+
+      return matchesSearch && matchesType;
+    });
+  }, [notifications, searchTerm, typeFilter]);
+
+  const groupedNotifications = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const groups = {
+      Today: [],
+      Yesterday: [],
+      Earlier: [],
+    };
+
+    filteredNotifications.forEach((notification) => {
+      const createdAt = new Date(notification.created_at);
+      const createdDay = new Date(createdAt);
+      createdDay.setHours(0, 0, 0, 0);
+
+      if (createdDay.getTime() === today.getTime()) {
+        groups.Today.push(notification);
+      } else if (createdDay.getTime() === yesterday.getTime()) {
+        groups.Yesterday.push(notification);
+      } else {
+        groups.Earlier.push(notification);
+      }
+    });
+
+    return Object.entries(groups).filter(([, items]) => items.length > 0);
+  }, [filteredNotifications]);
+
   if (loading) {
     return <div className="empty-state">Loading notifications...</div>;
   }
@@ -56,32 +137,109 @@ function HRNotifications() {
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      {notifications.length === 0 ? (
-        <div className="empty-state">No notifications yet.</div>
-      ) : (
-        <div className="notification-list">
-          {notifications.map((notification) => (
-            <div className={`notification-card ${notification.is_read ? "" : "unread"}`} key={notification.id}>
-              <div>
-                <h3>{notification.title}</h3>
-                <p>{notification.message}</p>
-                <div className="notification-meta">
-                  <span>{notification.type?.replace(/_/g, " ") || "Update"}</span>
-                  <span>•</span>
-                  <span>{new Date(notification.created_at).toLocaleString()}</span>
-                </div>
-              </div>
-
-              {!notification.is_read ? (
-                <button className="secondary-btn" onClick={() => handleMarkRead(notification.id)}>
-                  Mark as read
-                </button>
-              ) : (
-                <span className="status-badge approved">Read</span>
-              )}
-            </div>
-          ))}
+      <div className="notification-toolbar">
+        <div className="crm-field">
+          <label htmlFor="notification-search">Search</label>
+          <input
+            id="notification-search"
+            type="text"
+            placeholder="Search notifications"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
         </div>
+
+        <div className="crm-field">
+          <label htmlFor="notification-filter">Filter type</label>
+          <select
+            id="notification-filter"
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+          >
+            {notificationTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button className="primary-btn" type="button" onClick={handleMarkAllRead}>
+          Mark all read
+        </button>
+      </div>
+
+      {groupedNotifications.length === 0 ? (
+        <div className="empty-state">No notifications found.</div>
+      ) : (
+        groupedNotifications.map(([sectionTitle, sectionNotifications]) => (
+          <section className="notification-section" key={sectionTitle}>
+            <div className="notification-section__header">
+              <h2>{sectionTitle}</h2>
+              <span>{sectionNotifications.length} {sectionNotifications.length === 1 ? "item" : "items"}</span>
+            </div>
+
+            <div className="notification-list">
+              {sectionNotifications.map((notification) => (
+                <div
+                  className={`notification-card ${notification.is_read ? "" : "unread"}`}
+                  key={notification.id}
+                >
+                  <div
+                    className="notification-card__content"
+                    onClick={() => handleOpenNotification(notification)}
+                  >
+                    <div className="notification-card__icon">
+                      {notificationIcons[notification.type] || "🔔"}
+                    </div>
+                    <div>
+                      <div className="notification-card__title-row">
+                        <h3>{notification.title}</h3>
+                        {!notification.is_read && <span className="unread-dot" />}
+                      </div>
+                      <p>{notification.message}</p>
+                      <div className="notification-meta">
+                        <span>{notification.type?.replace(/_/g, " ") || "Update"}</span>
+                        <span>•</span>
+                        <span>{new Date(notification.created_at).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="notification-card__actions">
+                    {!notification.is_read ? (
+                      <button
+                        className="secondary-btn"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleMarkRead(notification.id);
+                        }}
+                      >
+                        Mark as read
+                      </button>
+                    ) : (
+                      <span className="status-badge approved">Read</span>
+                    )}
+
+                    {notification.document_id && (
+                      <button
+                        className="secondary-btn"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenNotification(notification);
+                        }}
+                      >
+                        Open document
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))
       )}
     </div>
   );

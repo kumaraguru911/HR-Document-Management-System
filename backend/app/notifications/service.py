@@ -60,3 +60,25 @@ def mark_notification_as_read(
     db.refresh(notification)
 
     return notification
+
+
+def mark_all_notifications_as_read(
+    db: Session,
+    user_id: int
+):
+    notifications = db.scalars(
+        select(Notification).where(
+            Notification.user_id == user_id,
+            Notification.is_read.is_(False)
+        )
+    ).all()
+
+    if not notifications:
+        return []
+
+    for notification in notifications:
+        notification.is_read = True
+
+    db.commit()
+
+    return notifications

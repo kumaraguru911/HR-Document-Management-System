@@ -7,7 +7,8 @@ from app.database.session import get_db
 from app.notifications.schemas import NotificationResponse
 from app.notifications.service import (
     get_user_notifications,
-    mark_notification_as_read
+    mark_notification_as_read,
+    mark_all_notifications_as_read
 )
 
 
@@ -53,3 +54,17 @@ def mark_as_read(
         )
 
     return notification
+
+
+@router.patch(
+    "/read-all",
+    response_model=list[NotificationResponse]
+)
+def mark_all_read(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return mark_all_notifications_as_read(
+        db,
+        current_user.id
+    )
