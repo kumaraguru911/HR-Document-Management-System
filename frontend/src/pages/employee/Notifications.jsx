@@ -73,12 +73,31 @@ function Notifications() {
   };
 
   const handleOpenNotification = async (notification) => {
-    if (!notification.is_read) {
-      await handleMarkAsRead(notification.id);
+    if (!notification.document_id) {
+      return;
     }
 
-    if (notification.document_id) {
-      navigate("/employee/documents");
+    const newTab = window.open("about:blank", "_blank");
+    if (!newTab) {
+      setError("Unable to open new tab. Please allow popups for this site.");
+      return;
+    }
+
+    newTab.document.write("<p style='font-family: system-ui, sans-serif; padding: 24px;'>Opening document...</p>");
+
+    try {
+      if (!notification.is_read) {
+        await handleMarkAsRead(notification.id);
+      }
+
+      const response = await api.get(`/documents/${notification.document_id}/access`);
+      const url = response.data.url || `/documents/${notification.document_id}/download`;
+      newTab.location.href = url;
+    } catch (err) {
+      console.error("Open document URL failed:", err);
+      newTab.close();
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Unable to open document.");
     }
   };
 
