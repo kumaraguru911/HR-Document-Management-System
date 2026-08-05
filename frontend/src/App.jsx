@@ -19,6 +19,7 @@ import HRLayout from "./layouts/HRLayout";
 import HRDashboard from "./pages/hr/HRDashboard";
 import Employees from "./pages/hr/Employees";
 import PendingDocuments from "./pages/hr/PendingDocuments";
+import DocumentReview from "./pages/hr/DocumentReview";
 import DocumentSettings from "./pages/hr/DocumentSettings";
 import AuditLogs from "./pages/hr/AuditLogs";
 import HRNotifications from "./pages/hr/HRNotifications";
@@ -63,6 +64,11 @@ function App() {
           <Route
             path="documents"
             element={<PendingDocuments />}
+          />
+
+          <Route
+            path="documents/:id"
+            element={<DocumentReview />}
           />
 
           <Route

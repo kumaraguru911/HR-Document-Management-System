@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 
 function PendingDocuments() {
@@ -7,6 +8,7 @@ function PendingDocuments() {
   const [error, setError] = useState("");
   const [rejectReasons, setRejectReasons] = useState({});
   const [processingId, setProcessingId] = useState(null);
+  const navigate = useNavigate();
 
   const fetchPendingDocuments = async () => {
     try {
@@ -26,29 +28,8 @@ function PendingDocuments() {
     fetchPendingDocuments();
   }, []);
 
-  const handleView = async (documentId) => {
-    try {
-      setError("");
-      const response = await api.get(`/documents/${documentId}/access`);
-      const url = response.data.url;
-
-      if (!url) {
-        setError("Document URL was not returned.");
-        return;
-      }
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Document access error:", err.response?.data || err);
-      const detail = err.response?.data?.detail;
-      setError(typeof detail === "string" ? detail : "Unable to access document.");
-    }
+  const handleView = (document) => {
+    navigate(`/hr/documents/${document.id}`, { state: { document } });
   };
 
   const handleApprove = async (documentId) => {
@@ -129,7 +110,7 @@ function PendingDocuments() {
                   <span>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "-"}</span>
                 </div>
                 <div className="upload-box">
-                  <button className="secondary-btn" type="button" onClick={() => handleView(doc.id)}>
+                  <button className="secondary-btn" type="button" onClick={() => handleView(doc)}>
                     View
                   </button>
                   <button className="primary-btn" type="button" disabled={processingId === doc.id} onClick={() => handleApprove(doc.id)}>
@@ -137,13 +118,17 @@ function PendingDocuments() {
                   </button>
                 </div>
                 <div className="upload-box">
-                  <input
-                    className="field"
-                    type="text"
-                    placeholder="Rejection reason"
-                    value={rejectReasons[doc.id] || ""}
-                    onChange={(e) => setRejectReasons((prev) => ({ ...prev, [doc.id]: e.target.value }))}
-                  />
+                  <label style={{ display: "block", width: "100%" }}>
+                    <span className="helper-text">Rejection reason</span>
+                    <textarea
+                      className="field"
+                      rows={2}
+                      placeholder="Enter rejection reason (required)"
+                      value={rejectReasons[doc.id] || ""}
+                      onChange={(e) => setRejectReasons((prev) => ({ ...prev, [doc.id]: e.target.value }))}
+                      style={{ resize: "vertical", minHeight: 40 }}
+                    />
+                  </label>
                   <button className="secondary-btn" type="button" disabled={processingId === doc.id} onClick={() => handleReject(doc.id)}>
                     Reject
                   </button>
