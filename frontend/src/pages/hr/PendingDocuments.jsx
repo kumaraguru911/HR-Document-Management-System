@@ -117,19 +117,22 @@ function PendingDocuments() {
                     {processingId === doc.id ? "Processing..." : "Approve"}
                   </button>
                 </div>
-                <div className="upload-box">
-                  <label style={{ display: "block", width: "100%" }}>
-                    <span className="helper-text">Rejection reason</span>
-                    <textarea
-                      className="field"
-                      rows={2}
-                      placeholder="Enter rejection reason (required)"
-                      value={rejectReasons[doc.id] || ""}
-                      onChange={(e) => setRejectReasons((prev) => ({ ...prev, [doc.id]: e.target.value }))}
-                      style={{ resize: "vertical", minHeight: 40 }}
-                    />
-                  </label>
-                  <button className="secondary-btn" type="button" disabled={processingId === doc.id} onClick={() => handleReject(doc.id)}>
+                <div className="upload-box reject-box">
+                  <div className="reject-box__header">
+                    <div>
+                      <p className="helper-text">Rejection reason</p>
+                      <p className="reject-box__description">Explain why this document cannot be approved.</p>
+                    </div>
+                    <span className="reject-box__tag">Required</span>
+                  </div>
+                  <textarea
+                    className="field reject-box__textarea"
+                    rows={3}
+                    placeholder="Type a clear rejection reason..."
+                    value={rejectReasons[doc.id] || ""}
+                    onChange={(e) => setRejectReasons((prev) => ({ ...prev, [doc.id]: e.target.value }))}
+                  />
+                  <button className="secondary-btn reject-box__button" type="button" disabled={processingId === doc.id} onClick={() => handleReject(doc.id)}>
                     Reject
                   </button>
                 </div>
