@@ -104,21 +104,47 @@ function HRNotifications() {
       return;
     }
 
-    const url = notification.access_url;
-    if (!url) {
-      setError("Document link is not ready yet. Please try again in a moment.");
-      return;
-    }
-
-    const absoluteUrl = url.match(/^https?:\/\//) ? url : `${window.location.protocol}//${window.location.host}${url}`;
-    const newTab = window.open(absoluteUrl, "_blank", "noopener,noreferrer");
+    const newTab = window.open("about:blank", "_blank");
     if (!newTab) {
       setError("Unable to open new tab. Please allow popups for this site.");
       return;
     }
 
-    if (!notification.is_read) {
-      handleMarkRead(notification.id);
+    try {
+      const downloadRes = await api.get(`/documents/${notification.document_id}/download`, {
+        responseType: "blob"
+      });
+
+      const blobUrl = URL.createObjectURL(downloadRes.data);
+      const filename = `${notification.title || "Document"}`;
+      const pageHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <title>${filename}</title>
+  <style>html,body{height:100%;margin:0;background:#fff}</style>
+</head>
+<body>
+  <embed src="${blobUrl}" type="${downloadRes.data.type}" width="100%" height="100%" />
+  <script>
+    window.addEventListener('unload', () => {
+      URL.revokeObjectURL('${blobUrl}');
+    });
+  </script>
+</body>
+</html>`;
+
+      newTab.document.open();
+      newTab.document.write(pageHtml);
+      newTab.document.close();
+
+      if (!notification.is_read) {
+        handleMarkRead(notification.id);
+      }
+    } catch (err) {
+      newTab.close();
+      console.error("Open document error:", err);
+      const detail = err.response?.data?.detail || err.message || "Unable to open document.";
+      setError(detail);
     }
   };
 

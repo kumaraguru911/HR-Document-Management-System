@@ -148,14 +148,9 @@ function DocumentReview() {
 
   const handleOpenFile = async () => {
     try {
-      if (previewUrl) {
-        const link = document.createElement("a");
-        link.href = previewUrl;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      const newTab = window.open("about:blank", "_blank");
+      if (!newTab) {
+        showToast({ type: "error", text: "Unable to open new tab. Please allow popups for this site." });
         return;
       }
 
@@ -164,14 +159,26 @@ function DocumentReview() {
       });
 
       const objectUrl = URL.createObjectURL(downloadRes.data);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
+      const filename = doc.original_filename || "Document";
+      const pageHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <title>${filename}</title>
+  <style>html,body{height:100%;margin:0;background:#fff}</style>
+</head>
+<body>
+  <embed src="${objectUrl}" type="${downloadRes.data.type}" width="100%" height="100%" />
+  <script>
+    window.addEventListener('unload', () => {
+      URL.revokeObjectURL('${objectUrl}');
+    });
+  </script>
+</body>
+</html>`;
+
+      newTab.document.open();
+      newTab.document.write(pageHtml);
+      newTab.document.close();
     } catch (err) {
       console.error("Open file error:", err);
       const detail = err.response?.data?.detail || err.message || "Unable to open file";
