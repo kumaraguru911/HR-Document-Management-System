@@ -49,3 +49,29 @@ class AuditLog(Base):
 
     user = relationship("User")
     document = relationship("Document")
+
+    @property
+    def user_email(self) -> str | None:
+        return self.user.email if self.user else None
+
+    @property
+    def user_name(self) -> str | None:
+        return self.user.email if self.user else None
+
+    @property
+    def document_name(self) -> str | None:
+        return self.document.original_filename if self.document else None
+
+    @property
+    def document_type(self) -> str | None:
+        return self.document.document_type.name if self.document and self.document.document_type else None
+
+    @property
+    def employee_name(self) -> str | None:
+        if self.document and self.document.employee:
+            return f"{self.document.employee.first_name} {self.document.employee.last_name}"
+        return None
+
+    @property
+    def employee_code(self) -> str | None:
+        return self.document.employee.employee_code if self.document and self.document.employee else None
