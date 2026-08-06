@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, status, File, UploadFile
 from fastapi.responses import StreamingResponse
 import logging
 from sqlalchemy.orm import Session
@@ -263,6 +263,7 @@ def list_employee_documents(
     response_model=DocumentAccessResponse
 )
 def access_document(
+    request: Request,
     document_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -284,6 +285,10 @@ def access_document(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this document"
         )
+
+    result["url"] = str(
+        request.url_for("download_document", document_id=document_id)
+    )
 
     return result
 

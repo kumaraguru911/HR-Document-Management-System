@@ -24,6 +24,35 @@ function HRNotifications() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
 
+  const fetchNotificationAccessUrls = async (items) => {
+    const results = await Promise.allSettled(
+      items
+        .filter((item) => item.document_id)
+        .map(async (item) => {
+          try {
+            const response = await api.get(`/documents/${item.document_id}/access`);
+            return {
+              id: item.id,
+              access_url: response.data.url,
+            };
+          } catch {
+            return null;
+          }
+        })
+    );
+
+    const urls = results
+      .filter((result) => result.status === "fulfilled" && result.value)
+      .map((result) => result.value);
+
+    setNotifications((current) =>
+      current.map((notification) => {
+        const found = urls.find((item) => item.id === notification.id);
+        return found ? { ...notification, access_url: found.access_url } : notification;
+      })
+    );
+  };
+
   const loadNotifications = async () => {
     try {
       setLoading(true);
@@ -31,6 +60,7 @@ function HRNotifications() {
 
       const response = await api.get("/notifications/my");
       setNotifications(response.data);
+      fetchNotificationAccessUrls(response.data);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || "Failed to load notifications");
@@ -74,27 +104,21 @@ function HRNotifications() {
       return;
     }
 
-    const newTab = window.open("about:blank", "_blank");
+    const url = notification.access_url;
+    if (!url) {
+      setError("Document link is not ready yet. Please try again in a moment.");
+      return;
+    }
+
+    const absoluteUrl = url.match(/^https?:\/\//) ? url : `${window.location.protocol}//${window.location.host}${url}`;
+    const newTab = window.open(absoluteUrl, "_blank", "noopener,noreferrer");
     if (!newTab) {
       setError("Unable to open new tab. Please allow popups for this site.");
       return;
     }
 
-    newTab.document.write("<p style='font-family: system-ui, sans-serif; padding: 24px;'>Opening document...</p>");
-
-    try {
-      if (!notification.is_read) {
-        await handleMarkRead(notification.id);
-      }
-
-      const response = await api.get(`/documents/${notification.document_id}/access`);
-      const url = response.data.url || `/documents/${notification.document_id}/download`;
-      newTab.location.href = url;
-    } catch (err) {
-      console.error("Open document URL failed:", err);
-      newTab.close();
-      const message = err.response?.data?.detail || "Unable to open document.";
-      setError(message);
+    if (!notification.is_read) {
+      handleMarkRead(notification.id);
     }
   };
 
