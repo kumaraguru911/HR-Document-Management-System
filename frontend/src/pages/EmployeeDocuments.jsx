@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../api/api";
 
 const MAX_HISTORY_ITEMS = 3;
@@ -21,6 +22,7 @@ function formatFileSize(bytes) {
 }
 
 function EmployeeDocuments() {
+  const location = useLocation();
   const [checklistItems, setChecklistItems] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [expandedDocumentId, setExpandedDocumentId] = useState(null);
@@ -60,6 +62,23 @@ function EmployeeDocuments() {
   useEffect(() => {
     fetchDocumentData();
   }, []);
+
+  useEffect(() => {
+    const notificationDocumentId = location.state?.documentId;
+    if (!notificationDocumentId || submissions.length === 0) return;
+
+    const targetSubmission = submissions.find((submission) => String(submission.id) === String(notificationDocumentId));
+    if (!targetSubmission) return;
+
+    const targetTypeId = targetSubmission.document_type_id;
+    setExpandedDocumentId(targetTypeId);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`employee-document-${targetTypeId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }, [location.state?.documentId, submissions]);
 
   useEffect(() => () => {
     if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);

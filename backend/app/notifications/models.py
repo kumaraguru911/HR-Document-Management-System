@@ -10,7 +10,7 @@ from sqlalchemy import (
     Text,
     func
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
 
@@ -69,3 +69,11 @@ class Notification(Base):
         server_default=func.now(),
         nullable=False
     )
+
+    document = relationship("Document")
+
+    @property
+    def document_name(self) -> str | None:
+        if self.document is None or self.document.document_type is None:
+            return None
+        return self.document.document_type.name

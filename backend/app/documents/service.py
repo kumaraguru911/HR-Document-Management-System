@@ -448,8 +448,8 @@ def approve_document(
             db=db,
             user_id=employee.user_id,
             notification_type=NotificationType.DOCUMENT_APPROVED,
-            title="Document Approved",
-            message="Your document has been approved by HR.",
+            title=f"{document.document_type.name} Approved",
+            message=f"Your {document.document_type.name} has been approved by HR.",
             document_id=document.id
         )
     db.commit()
@@ -509,8 +509,8 @@ def reject_document(
             db=db,
             user_id=employee.user_id,
             notification_type=NotificationType.DOCUMENT_REJECTED,
-            title="Document Rejected",
-            message=f"Your document was rejected: {reason}",
+            title=f"{document_type.name} Rejected",
+            message=f"Your {document_type.name} was rejected: {reason}",
             document_id=document.id
         )
 

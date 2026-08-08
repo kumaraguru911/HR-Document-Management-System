@@ -15,6 +15,41 @@ const notificationIcons = {
   DOCUMENT_REJECTED: "❌",
   DOCUMENT_REQUIRED: "📌",
   DOCUMENT_UPLOADED: "📤",
+  ONBOARDING_MILESTONE: "🎯",
+  ACCOUNT_UPDATED: "👤",
+  ACCOUNT_SECURITY: "🔒",
+};
+
+const getNotificationTitle = (notification) => {
+  if (!notification.document_name) return notification.title || "Update";
+
+  const statusLabel = {
+    DOCUMENT_APPROVED: "Approved",
+    DOCUMENT_REJECTED: "Rejected",
+    DOCUMENT_REQUIRED: "Required",
+    DOCUMENT_UPLOADED: "Uploaded",
+  }[notification.type];
+
+  return statusLabel ? `${notification.document_name} ${statusLabel}` : notification.title || "Update";
+};
+
+const getNotificationMessage = (notification) => {
+  if (!notification.document_name) return notification.message || "Your latest update is ready.";
+
+  if (notification.type === "DOCUMENT_APPROVED") {
+    return `Your ${notification.document_name} has been approved by HR.`;
+  }
+
+  if (notification.type === "DOCUMENT_REJECTED") {
+    const reason = notification.message?.match(/rejected:\s*(.*)$/i)?.[1];
+    return `Your ${notification.document_name} was rejected${reason ? `: ${reason}` : ". Please upload a replacement."}`;
+  }
+
+  if (notification.type === "DOCUMENT_REQUIRED") {
+    return `Upload your ${notification.document_name} to complete this requirement.`;
+  }
+
+  return notification.message || `Your ${notification.document_name} was uploaded successfully.`;
 };
 
 function Notifications() {
@@ -26,41 +61,11 @@ function Notifications() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
 
-  const fetchNotificationAccessUrls = async (items) => {
-    const results = await Promise.allSettled(
-      items
-        .filter((item) => item.document_id)
-        .map(async (item) => {
-          try {
-            const response = await api.get(`/documents/${item.document_id}/access`);
-            return {
-              id: item.id,
-              access_url: response.data.url,
-            };
-          } catch {
-            return null;
-          }
-        })
-    );
-
-    const urls = results
-      .filter((result) => result.status === "fulfilled" && result.value)
-      .map((result) => result.value);
-
-    setNotifications((current) =>
-      current.map((notification) => {
-        const found = urls.find((item) => item.id === notification.id);
-        return found ? { ...notification, access_url: found.access_url } : notification;
-      })
-    );
-  };
-
   const fetchNotifications = async () => {
     try {
       setError("");
       const response = await api.get("/notifications/my");
       setNotifications(response.data);
-      fetchNotificationAccessUrls(response.data);
     } catch (err) {
       console.error("Notification fetch error:", err);
       const detail = err.response?.data?.detail;
@@ -102,66 +107,31 @@ function Notifications() {
     }
   };
 
+  const getNotificationDestination = (notification) => {
+    if (notification.document_id) {
+      return { path: "/employee/documents", state: { documentId: notification.document_id } };
+    }
+
+    if (["ACCOUNT_UPDATED", "ACCOUNT_SECURITY"].includes(notification.type)) {
+      return { path: "/settings" };
+    }
+
+    return { path: "/employee" };
+  };
+
   const handleOpenNotification = async (notification) => {
-    if (!notification.document_id) {
-      return;
+    if (!notification.is_read) await handleMarkAsRead(notification.id);
+    const destination = getNotificationDestination(notification);
+    navigate(destination.path, { state: destination.state });
+  };
+
+  const getActionLabel = (notification) => {
+    if (notification.document_id) {
+      return notification.type === "DOCUMENT_REJECTED" || notification.type === "DOCUMENT_REQUIRED"
+        ? "Take action"
+        : "View document";
     }
-
-    const directUrl = notification.access_url;
-    if (directUrl) {
-      const newTab = window.open(directUrl, "_blank", "noopener,noreferrer");
-      if (newTab) {
-        if (!notification.is_read) {
-          handleMarkAsRead(notification.id);
-        }
-        return;
-      }
-      setError("Unable to open new tab. Please allow popups for this site.");
-      return;
-    }
-
-    const newTab = window.open("about:blank", "_blank");
-    if (!newTab) {
-      setError("Unable to open new tab. Please allow popups for this site.");
-      return;
-    }
-
-    try {
-      const downloadRes = await api.get(`/documents/${notification.document_id}/download`, {
-        responseType: "blob"
-      });
-
-      const blobUrl = URL.createObjectURL(downloadRes.data);
-      const filename = `${notification.title || "Document"}`;
-      const pageHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <title>${filename}</title>
-  <style>html,body{height:100%;margin:0;background:#fff}</style>
-</head>
-<body>
-  <embed src="${blobUrl}" type="${downloadRes.data.type}" width="100%" height="100%" />
-  <script>
-    window.addEventListener('unload', () => {
-      URL.revokeObjectURL('${blobUrl}');
-    });
-  </script>
-</body>
-</html>`;
-
-      newTab.document.open();
-      newTab.document.write(pageHtml);
-      newTab.document.close();
-
-      if (!notification.is_read) {
-        handleMarkAsRead(notification.id);
-      }
-    } catch (err) {
-      newTab.close();
-      console.error("Open document error:", err);
-      const detail = err.response?.data?.detail || err.message || "Unable to open document.";
-      setError(detail);
-    }
+    return ["ACCOUNT_UPDATED", "ACCOUNT_SECURITY"].includes(notification.type) ? "Open settings" : "View dashboard";
   };
 
   const filteredNotifications = useMemo(() => {
@@ -169,7 +139,7 @@ function Notifications() {
       const lowerSearch = searchTerm.trim().toLowerCase();
       const matchesSearch =
         !lowerSearch ||
-        `${notification.title} ${notification.message}`.toLowerCase().includes(lowerSearch);
+        `${getNotificationTitle(notification)} ${getNotificationMessage(notification)}`.toLowerCase().includes(lowerSearch);
       const matchesType =
         typeFilter === "ALL" || notification.type === typeFilter;
 
@@ -280,10 +250,10 @@ function Notifications() {
                     </div>
                     <div>
                       <div className="notification-card__title-row">
-                        <h3>{notification.title}</h3>
+                        <h3>{getNotificationTitle(notification)}</h3>
                         {!notification.is_read && <span className="unread-dot" />}
                       </div>
-                      <p>{notification.message}</p>
+                      <p>{getNotificationMessage(notification)}</p>
                       <div className="notification-meta">
                         <span>{notification.type?.replace(/_/g, " ") || "Update"}</span>
                         <span>•</span>
@@ -308,18 +278,16 @@ function Notifications() {
                       <span className="status-badge approved">Read</span>
                     )}
 
-                    {notification.document_id && (
-                      <button
-                        className="secondary-btn"
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleOpenNotification(notification);
-                        }}
-                      >
-                        Open documents
-                      </button>
-                    )}
+                    <button
+                      className="secondary-btn"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleOpenNotification(notification);
+                      }}
+                    >
+                      {getActionLabel(notification)}
+                    </button>
                   </div>
                 </div>
               ))}

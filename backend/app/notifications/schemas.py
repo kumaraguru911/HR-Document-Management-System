@@ -11,6 +11,7 @@ class NotificationResponse(BaseModel):
     title: str
     message: str
     document_id: int | None
+    document_name: str | None = None
     is_read: bool
     created_at: datetime
 
