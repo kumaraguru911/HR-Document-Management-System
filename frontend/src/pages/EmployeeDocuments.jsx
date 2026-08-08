@@ -23,9 +23,15 @@ function formatFileSize(bytes) {
 function EmployeeDocuments() {
   const [checklistItems, setChecklistItems] = useState([]);
   const [submissions, setSubmissions] = useState([]);
-  const [selectedFiles, setSelectedFiles] = useState({});
   const [expandedDocumentId, setExpandedDocumentId] = useState(null);
   const [expandedHistory, setExpandedHistory] = useState({});
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploadDocumentTypeId, setUploadDocumentTypeId] = useState("");
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
@@ -55,35 +61,9 @@ function EmployeeDocuments() {
     fetchDocumentData();
   }, []);
 
-  const handleFileChange = (documentTypeId, file) => {
-    setSelectedFiles((previous) => ({ ...previous, [documentTypeId]: file || null }));
-  };
-
-  const handleUpload = async (documentTypeId) => {
-    const file = selectedFiles[documentTypeId];
-    if (!file) {
-      setError("Choose a PDF, JPEG, or PNG file before uploading.");
-      return;
-    }
-
-    try {
-      setError("");
-      setMessage("");
-      setUploadingId(documentTypeId);
-      const formData = new FormData();
-      formData.append("file", file);
-      await api.post(`/documents/my/upload/${documentTypeId}`, formData);
-      await fetchDocumentData();
-      setSelectedFiles((previous) => ({ ...previous, [documentTypeId]: null }));
-      setMessage(`${file.name} was uploaded successfully and is awaiting HR review.`);
-    } catch (err) {
-      console.error("Upload error:", err);
-      const detail = err.response?.data?.detail;
-      setError(typeof detail === "string" ? detail : "Unable to upload document.");
-    } finally {
-      setUploadingId(null);
-    }
-  };
+  useEffect(() => () => {
+    if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+  }, [uploadPreviewUrl]);
 
   const handleDownload = async (submission) => {
     try {
@@ -147,6 +127,94 @@ function EmployeeDocuments() {
   }), [documentCards]);
 
   const attentionDocuments = documentCards.filter((item) => item.needsAttention);
+  const uploadableDocuments = documentCards.filter((item) => item.displayStatus === "Not uploaded" || item.displayStatus === "Rejected");
+
+  const closeUpload = () => {
+    setIsUploadOpen(false);
+    setUploadDocumentTypeId("");
+    setUploadFile(null);
+    setUploadPreviewUrl("");
+    setUploadProgress(0);
+    setUploadError("");
+    setUploadSuccess(false);
+  };
+
+  const openUpload = (documentTypeId = "") => {
+    setUploadDocumentTypeId(documentTypeId ? String(documentTypeId) : "");
+    setUploadFile(null);
+    setUploadPreviewUrl("");
+    setUploadProgress(0);
+    setUploadError("");
+    setUploadSuccess(false);
+    setIsUploadOpen(true);
+  };
+
+  const handleUploadFileChange = (file) => {
+    setUploadError("");
+    setUploadSuccess(false);
+    setUploadProgress(0);
+
+    if (!file) {
+      setUploadFile(null);
+      setUploadPreviewUrl("");
+      return;
+    }
+
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadFile(null);
+      setUploadPreviewUrl("");
+      setUploadError("Unsupported file format. Choose a PDF, JPEG, or PNG file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadFile(null);
+      setUploadPreviewUrl("");
+      setUploadError("This file is too large. Files must be 5 MB or smaller.");
+      return;
+    }
+
+    setUploadFile(file);
+    setUploadPreviewUrl(file.type.startsWith("image/") ? URL.createObjectURL(file) : "");
+  };
+
+  const handleUpload = async () => {
+    const documentTypeId = Number(uploadDocumentTypeId);
+    if (!documentTypeId) {
+      setUploadError("Select the required document you want to upload.");
+      return;
+    }
+    if (!uploadFile) {
+      setUploadError("Choose a PDF, JPEG, or PNG file before uploading.");
+      return;
+    }
+
+    try {
+      setUploadError("");
+      setMessage("");
+      setUploadingId(documentTypeId);
+      setUploadProgress(1);
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      await api.post(`/documents/my/upload/${documentTypeId}`, formData, {
+        onUploadProgress: (event) => {
+          if (event.total) setUploadProgress(Math.round((event.loaded / event.total) * 100));
+        },
+      });
+      setUploadProgress(100);
+      await fetchDocumentData();
+      setUploadSuccess(true);
+      setMessage(`${uploadFile.name} was uploaded successfully and is awaiting HR review.`);
+    } catch (err) {
+      console.error("Upload error:", err);
+      const detail = err.response?.data?.detail;
+      setUploadError(typeof detail === "string" ? detail : "Unable to upload document. Please try again.");
+      setUploadProgress(0);
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   const toggleDocument = (documentTypeId) => {
     setExpandedDocumentId((current) => current === documentTypeId ? null : documentTypeId);
@@ -172,6 +240,9 @@ function EmployeeDocuments() {
           <h1>Document checklist</h1>
           <p className="page-subtitle">Complete your required uploads and check the latest feedback from HR.</p>
         </div>
+        <button className="primary-btn" type="button" onClick={() => openUpload()} disabled={uploadableDocuments.length === 0}>
+          Upload document
+        </button>
       </div>
 
       {error && <div className="alert alert-error" role="alert">{error}</div>}
@@ -255,13 +326,10 @@ function EmployeeDocuments() {
                         <div className="doc-action-note">This requirement is complete.</div>
                       ) : (
                         <div className="upload-box">
-                      <label className="file-picker">
-                        <span>{selectedFiles[document.document_type_id]?.name || "Choose PDF, JPEG, or PNG"}</span>
-                        <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(event) => handleFileChange(document.document_type_id, event.target.files?.[0])} />
-                      </label>
-                      <button className="primary-btn" type="button" disabled={uploadingId === document.document_type_id} onClick={() => handleUpload(document.document_type_id)}>
-                        {uploadingId === document.document_type_id ? "Uploading…" : document.displayStatus === "Rejected" ? "Upload replacement" : "Upload document"}
-                      </button>
+                          <p className="helper-text">You’ll be able to check your file before submitting it.</p>
+                          <button className="primary-btn" type="button" onClick={() => openUpload(document.document_type_id)}>
+                            {document.displayStatus === "Rejected" ? "Upload replacement" : "Start upload"}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -308,6 +376,75 @@ function EmployeeDocuments() {
               </div>
             </section>
           </aside>
+        </div>
+      )}
+
+      {isUploadOpen && (
+        <div className="profile-overlay upload-overlay" onClick={closeUpload}>
+          <section className="upload-modal" role="dialog" aria-modal="true" aria-labelledby="upload-document-title" onClick={(event) => event.stopPropagation()}>
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">Upload document</p>
+                <h3 id="upload-document-title">Submit a required document</h3>
+                <p className="panel-subtitle">Choose the document type, check your file, and submit it to HR.</p>
+              </div>
+              <button className="ghost-btn" type="button" onClick={closeUpload}>Close</button>
+            </div>
+
+            {uploadSuccess ? (
+              <div className="upload-success-state">
+                <span className="upload-success-state__icon">✓</span>
+                <h4>Upload complete</h4>
+                <p>Your document has been sent to HR for review.</p>
+                <button className="primary-btn" type="button" onClick={closeUpload}>Done</button>
+              </div>
+            ) : (
+              <div className="upload-workflow">
+                <div className="upload-step">
+                  <span>1</span>
+                  <div>
+                    <label htmlFor="upload-document-type">Select document type</label>
+                    <select id="upload-document-type" value={uploadDocumentTypeId} onChange={(event) => { setUploadDocumentTypeId(event.target.value); setUploadError(""); }} disabled={uploadingId !== null}>
+                      <option value="">Choose a required document</option>
+                      {uploadableDocuments.map((document) => <option key={document.document_type_id} value={document.document_type_id}>{document.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="upload-step">
+                  <span>2</span>
+                  <div>
+                    <label className="upload-dropzone">
+                      <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(event) => handleUploadFileChange(event.target.files?.[0])} disabled={uploadingId !== null} />
+                      <strong>{uploadFile ? "Choose a different file" : "Choose a file"}</strong>
+                      <small>PDF, JPEG, or PNG · maximum file size 5 MB</small>
+                    </label>
+                  </div>
+                </div>
+
+                {uploadFile && (
+                  <div className="upload-preview">
+                    {uploadPreviewUrl ? <img src={uploadPreviewUrl} alt={`Preview of ${uploadFile.name}`} /> : <span className="upload-preview__file-icon">PDF</span>}
+                    <div>
+                      <strong>{uploadFile.name}</strong>
+                      <p>{formatFileSize(uploadFile.size)} · {uploadFile.type === "application/pdf" ? "PDF document" : "Image file"}</p>
+                      <span>Ready to upload</span>
+                    </div>
+                  </div>
+                )}
+
+                {uploadError && <div className="alert alert-error" role="alert">{uploadError}</div>}
+                {uploadingId !== null && <div className="upload-progress" aria-label={`Uploading ${uploadProgress}%`}><div><span>Uploading your file</span><strong>{uploadProgress}%</strong></div><i><b style={{ width: `${uploadProgress}%` }} /></i></div>}
+
+                <div className="upload-workflow__actions">
+                  <button className="secondary-btn" type="button" onClick={closeUpload} disabled={uploadingId !== null}>Cancel</button>
+                  <button className="primary-btn" type="button" onClick={handleUpload} disabled={uploadingId !== null || !uploadFile || !uploadDocumentTypeId}>
+                    {uploadingId !== null ? "Uploading…" : "Upload document"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
         </div>
       )}
     </div>
