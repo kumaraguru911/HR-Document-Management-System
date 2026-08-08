@@ -45,7 +45,7 @@ function EmployeeDashboard() {
     const normalized = status.toUpperCase();
     if (normalized === "APPROVED") return "Approved";
     if (normalized === "REJECTED") return "Rejected";
-    if (normalized === "UPLOADED" || normalized === "SUBMITTED" || normalized === "IN_REVIEW" || normalized === "UNDER_REVIEW") {
+    if (["UPLOADED", "SUBMITTED", "IN_REVIEW", "UNDER_REVIEW"].includes(normalized)) {
       return "Uploaded";
     }
 
@@ -110,6 +110,12 @@ function EmployeeDashboard() {
     ];
   }, [summary]);
 
+  const today = new Date().toLocaleDateString("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   const recentActivity = useMemo(() => {
     const activity = [];
 
@@ -157,19 +163,32 @@ function EmployeeDashboard() {
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
+      <section className="page-header hero-banner onboarding-hero">
+        <div className="hero-copy">
           <p className="eyebrow">Employee workspace</p>
           <h1>Welcome, {user.first_name || "there"}</h1>
           <p className="page-subtitle">
             Your onboarding journey is now organized into clear milestones, document requirements, and status updates.
           </p>
         </div>
-        <div className="hero-panel-inline">
-          <p>Signed in as</p>
-          <strong>{user.email || "employee@company.com"}</strong>
+
+        <div className="hero-panel-inline dashboard-summary">
+          <div className="summary-date">
+            
+            <div>
+              <p className="hero-label">Today</p>
+              <strong>{today}</strong>
+            </div>
+          </div>
+          <div>
+            <p className="hero-label">Onboarding progress</p>
+            <strong>{summary.progress}% complete</strong>
+            <span>
+              {summary.approved} approved • {summary.uploaded} uploaded • {summary.pending} pending
+            </span>
+          </div>
         </div>
-      </div>
+      </section>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -177,23 +196,6 @@ function EmployeeDashboard() {
         <div className="empty-state">Preparing your onboarding overview...</div>
       ) : (
         <>
-          <section className="hero-banner onboarding-hero">
-            <div className="hero-copy">
-              <p className="hero-label">Onboarding progress</p>
-              <h1>{summary.progress}% complete</h1>
-              <p className="page-subtitle">
-                {summary.pending > 0
-                  ? `${summary.pending} required item${summary.pending > 1 ? "s" : ""} still need attention.`
-                  : "Everything is moving smoothly and you are almost ready to go."}
-              </p>
-            </div>
-            <div className="hero-panel-inline">
-              <p>Current focus</p>
-              <strong>{summary.pending > 0 ? "Finish remaining uploads" : "Awaiting final confirmation"}</strong>
-              <span>{summary.approved} approved • {summary.uploaded} uploaded • {summary.pending} pending</span>
-            </div>
-          </section>
-
           <div className="card-grid">
             <div className="metric-card">
               <p className="eyebrow">Required items</p>
@@ -201,9 +203,9 @@ function EmployeeDashboard() {
               <p>Documents expected for onboarding.</p>
             </div>
             <div className="metric-card">
-              <p className="eyebrow">Updates</p>
-              <strong>{notifications.length}</strong>
-              <p>Notifications keeping you informed.</p>
+              <p className="eyebrow">Uploaded</p>
+              <strong>{summary.uploaded}</strong>
+              <p>Items you have already submitted.</p>
             </div>
             <div className="metric-card">
               <p className="eyebrow">Status</p>
@@ -223,7 +225,9 @@ function EmployeeDashboard() {
               <div className="progress-tracker">
                 {stages.map((stage) => (
                   <div className={`progress-step ${stage.tone}`} key={stage.label}>
-                    <div className="progress-step__icon">{stage.tone === "complete" ? "✓" : stage.tone === "active" ? "•" : "○"}</div>
+                    <div className="progress-step__icon">
+                      {stage.tone === "complete" ? "✓" : stage.tone === "active" ? "•" : "○"}
+                    </div>
                     <div className="progress-step__body">
                       <div className="progress-step__label">
                         <strong>{stage.label}</strong>
@@ -240,7 +244,7 @@ function EmployeeDashboard() {
               <div className="panel-head">
                 <div>
                   <h3>Quick actions</h3>
-                  <p className="panel-subtitle">Move straight to the next step.</p>
+                  <p className="panel-subtitle">Move straight to the next onboarding step.</p>
                 </div>
               </div>
               <div className="stack">
@@ -271,7 +275,9 @@ function EmployeeDashboard() {
                         <h4>{document.name}</h4>
                         <p>{document.description || "Upload this document to keep onboarding moving."}</p>
                       </div>
-                      <span className={`status-badge ${getStatusClass(document.status)}`}>{getDisplayStatus(document.status)}</span>
+                      <span className={`status-badge ${getStatusClass(document.status)}`}>
+                        {getDisplayStatus(document.status)}
+                      </span>
                     </div>
                   ))}
                 </div>
