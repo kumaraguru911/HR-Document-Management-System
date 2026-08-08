@@ -94,81 +94,101 @@ function AuditLogs() {
   };
 
   return (
-    <div className="panel-card">
-      <div className="panel-head">
+    <div className="page-shell">
+      <section className="page-header">
         <div>
-          <h1>Audit Logs</h1>
-          <p className="panel-subtitle">Activity feed for HR actions with search and filters.</p>
+          <p className="eyebrow">Activity tracking</p>
+          <h1>Audit logs</h1>
+          <p className="page-subtitle">Review the complete activity history of HR actions with advanced search and filtering options.</p>
         </div>
-      </div>
+      </section>
 
-      <form className="notification-toolbar" onSubmit={handleSearchSubmit}>
-        <input
-          type="text"
-          placeholder="Search by user, document, employee, or details"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+      {error && <div className="alert alert-error">{error}</div>}
 
-        <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
-          {actionOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <section className="panel-card">
+        <div className="panel-head">
+          <div>
+            <h3>Activity history</h3>
+            <p className="panel-subtitle">Search, filter, and track all HR system activities.</p>
+          </div>
+        </div>
 
-        <div className="filter-group" style={{ display: "grid", gap: "10px" }}>
-          <label>
-            <span>From</span>
+        <form className="notification-toolbar" onSubmit={handleSearchSubmit}>
+          <div className="crm-field">
+            <label htmlFor="audit-search">Search logs</label>
             <input
+              id="audit-search"
+              type="text"
+              placeholder="Search by user, document, employee, or details"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+
+          <div className="crm-field">
+            <label htmlFor="audit-action">Action type</label>
+            <select id="audit-action" value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
+              {actionOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="crm-field">
+            <label htmlFor="audit-start">From date</label>
+            <input
+              id="audit-start"
               type="date"
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
               aria-label="Start date"
             />
-          </label>
-          <label>
-            <span>To</span>
+          </div>
+
+          <div className="crm-field">
+            <label htmlFor="audit-end">To date</label>
             <input
+              id="audit-end"
               type="date"
               value={endDate}
               onChange={(event) => setEndDate(event.target.value)}
               aria-label="End date"
             />
-          </label>
-        </div>
+          </div>
 
-        <button type="submit" className="ghost-btn">
-          Apply filters
-        </button>
-        <button type="button" className="ghost-btn" onClick={handleReset}>
-          Reset
-        </button>
-      </form>
+          <button type="submit" className="primary-btn">
+            Apply filters
+          </button>
+          <button type="button" className="ghost-btn" onClick={handleReset}>
+            Reset
+          </button>
+        </form>
 
-      {loading ? (
-        <p>Loading activity...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : logs.length === 0 ? (
-        <p className="empty-state">No audit activity found for the selected filters.</p>
-      ) : (
-        <div className="activity-list">
-          {logs.map((log) => (
-            <article key={log.id} className="activity-item">
-              <span className="activity-dot" />
-              <div>
-                <strong>{renderLogMessage(log)}</strong>
-                {log.details && <p>{log.details}</p>}
-                <p className="notification-meta">
-                  {new Date(log.created_at).toLocaleString()}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+        {loading ? (
+          <p className="helper-text">Loading activity logs...</p>
+        ) : error ? (
+          <p className="error-text">{error}</p>
+        ) : logs.length === 0 ? (
+          <div className="empty-state">No audit activity found for the selected filters.</div>
+        ) : (
+          <div className="activity-list">
+            {logs.map((log) => (
+              <article key={log.id} className="activity-item">
+                <span className="activity-dot" />
+                <div>
+                  <strong>{renderLogMessage(log)}</strong>
+                  {log.details && <p>{log.details}</p>}
+                  <p className="notification-meta">
+                    {new Date(log.created_at).toLocaleString()}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

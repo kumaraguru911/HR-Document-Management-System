@@ -233,72 +233,73 @@ function DocumentSettings() {
   };
 
   return (
-    <div>
-      <h1>Document Settings</h1>
+    <div className="page-shell">
+      <section className="page-header hero-banner">
+        <div className="hero-copy">
+          <p className="eyebrow">Configuration</p>
+          <h1>Document settings</h1>
+          <p className="page-subtitle">
+            Manage document types, set requirements by employment type, and control the onboarding workflow.
+          </p>
+        </div>
+      </section>
 
-      {error && <p>{error}</p>}
-      {success && <p>{success}</p>}
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
-      {/* ====================================
-          EXISTING DOCUMENT TYPES
-      ==================================== */}
-
-      <section>
-        <h2>Document Types</h2>
+      {/* Document Types List */}
+      <section className="panel-card">
+        <div className="panel-head">
+          <div>
+            <h3>Document types</h3>
+            <p className="panel-subtitle">Configure the types of documents required during onboarding.</p>
+          </div>
+        </div>
 
         {loadingTypes ? (
-          <p>Loading document types...</p>
+          <p className="helper-text">Loading document types...</p>
         ) : documentTypes.length === 0 ? (
-          <p>No document types found.</p>
+          <div className="empty-state">No document types configured yet. Add one below.</div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {documentTypes.map((documentType) => (
-                <tr key={documentType.id}>
-                  <td>{documentType.id}</td>
-
-                  <td>{documentType.name}</td>
-
-                  <td>
-                    {documentType.description || "-"}
-                  </td>
-
-                  <td>
-                    {documentType.is_active
-                      ? "ACTIVE"
-                      : "INACTIVE"}
-                  </td>
+          <div className="table-container">
+            <table className="settings-table">
+              <thead>
+                <tr>
+                  <th>Document name</th>
+                  <th>Description</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {documentTypes.map((documentType) => (
+                  <tr key={documentType.id}>
+                    <td><strong>{documentType.name}</strong></td>
+                    <td>{documentType.description || "—"}</td>
+                    <td>
+                      <span className={`status-badge ${documentType.is_active ? "active" : "inactive"}`}>
+                        {documentType.is_active ? "ACTIVE" : "INACTIVE"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
-      <hr />
-
-      {/* ====================================
-          ADD DOCUMENT TYPE
-      ==================================== */}
-
-      <section>
-        <h2>Add Document Type</h2>
-
-        <form onSubmit={handleAddDocumentType}>
+      {/* Add Document Type Form */}
+      <section className="panel-card">
+        <div className="panel-head">
           <div>
-            <label>Document Name</label>
+            <h3>Add document type</h3>
+            <p className="panel-subtitle">Create a new document type for onboarding requirements.</p>
+          </div>
+        </div>
 
-            <br />
-
+        <form onSubmit={handleAddDocumentType} className="form-stack">
+          <label className="field">
+            <span>Document name</span>
             <input
               type="text"
               name="name"
@@ -307,125 +308,80 @@ function DocumentSettings() {
               placeholder="Example: Passport"
               required
             />
-          </div>
+          </label>
 
-          <br />
-
-          <div>
-            <label>Description</label>
-
-            <br />
-
+          <label className="field">
+            <span>Description</span>
             <textarea
               name="description"
               value={typeForm.description}
               onChange={handleTypeChange}
-              placeholder="Enter document description"
+              placeholder="Explain what this document is for..."
               rows="3"
             />
-          </div>
+          </label>
 
-          <br />
-
-          <button
-            type="submit"
-            disabled={addingType}
-          >
-            {addingType
-              ? "Adding..."
-              : "Add Document Type"}
+          <button type="submit" className="primary-btn" disabled={addingType}>
+            {addingType ? "Adding..." : "Add document type"}
           </button>
         </form>
       </section>
 
-      <hr />
-
-      {/* ====================================
-          ADD DOCUMENT REQUIREMENT
-      ==================================== */}
-
-      <section>
-        <h2>Add Document Requirement</h2>
-
-        <form onSubmit={handleAddRequirement}>
+      {/* Add Document Requirement Form */}
+      <section className="panel-card">
+        <div className="panel-head">
           <div>
-            <label>Document Type</label>
+            <h3>Add document requirement</h3>
+            <p className="panel-subtitle">Specify which documents are required for different employment types.</p>
+          </div>
+        </div>
 
-            <br />
-
+        <form onSubmit={handleAddRequirement} className="form-stack">
+          <label className="field">
+            <span>Document type</span>
             <select
               name="document_type_id"
-              value={
-                requirementForm.document_type_id
-              }
+              value={requirementForm.document_type_id}
               onChange={handleRequirementChange}
               required
             >
-              <option value="">
-                Select Document
-              </option>
-
+              <option value="">Select a document type</option>
               {documentTypes
-                .filter(
-                  (documentType) =>
-                    documentType.is_active
-                )
+                .filter((documentType) => documentType.is_active)
                 .map((documentType) => (
-                  <option
-                    key={documentType.id}
-                    value={documentType.id}
-                  >
+                  <option key={documentType.id} value={documentType.id}>
                     {documentType.name}
                   </option>
                 ))}
             </select>
-          </div>
+          </label>
 
-          <br />
+          <label className="field">
+            <span>Employment type</span>
+            <select
+              name="employment_type"
+              value={requirementForm.employment_type}
+              onChange={handleRequirementChange}
+              required
+            >
+              <option value="">Select employment type</option>
+              <option value="FULL_TIME">Full Time</option>
+              <option value="CONTRACT">Contract</option>
+            </select>
+          </label>
 
-          <div>
-  <label>Employment Type</label>
+          <label className="field field-checkbox">
+            <input
+              type="checkbox"
+              name="is_required"
+              checked={requirementForm.is_required}
+              onChange={handleRequirementChange}
+            />
+            <span>Mark as required</span>
+          </label>
 
-  <br />
-
-  <select
-    name="employment_type"
-    value={requirementForm.employment_type}
-    onChange={handleRequirementChange}
-    required
-  >
-    <option value="">Select Employment Type</option>
-    <option value="FULL_TIME">Full Time</option>
-    <option value="CONTRACT">Contract</option>
-  </select>
-</div>
-
-          <br />
-
-          <div>
-            <label>
-              <input
-                type="checkbox"
-                name="is_required"
-                checked={
-                  requirementForm.is_required
-                }
-                onChange={handleRequirementChange}
-              />
-
-              {" "}Required
-            </label>
-          </div>
-
-          <br />
-
-          <button
-            type="submit"
-            disabled={addingRequirement}
-          >
-            {addingRequirement
-              ? "Adding..."
-              : "Add Requirement"}
+          <button type="submit" className="primary-btn" disabled={addingRequirement}>
+            {addingRequirement ? "Adding..." : "Add requirement"}
           </button>
         </form>
       </section>
