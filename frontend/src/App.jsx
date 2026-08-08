@@ -13,6 +13,7 @@ import ActivateAccount from "./pages/ActivateAccount";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
+import { ToastProvider } from "./components/ToastProvider";
 
 import HRLayout from "./layouts/HRLayout";
 import EmployeeLayout from "./layouts/EmployeeLayout";
@@ -34,6 +35,7 @@ import Security from "./pages/Security";
 function App() {
   return (
     <BrowserRouter>
+      <ToastProvider>
       <Routes>
 
         {/* Default */}
@@ -93,6 +95,11 @@ function App() {
             path="settings"
             element={<Settings />}
           />
+
+          <Route
+            path="settings/security"
+            element={<Security />}
+          />
         </Route>
 
         {/* ============== EMPLOYEE ============== */}
@@ -106,7 +113,7 @@ function App() {
           <Route path="security" element={<Security />} />
         </Route>
 
-        {/* Shared settings */}
+        {/* Standalone settings routes retained for direct links */}
         <Route
           path="/settings"
           element={
@@ -132,6 +139,7 @@ function App() {
         />
 
       </Routes>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

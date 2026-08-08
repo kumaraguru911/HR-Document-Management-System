@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import { Card, EmptyState, PageHeader, ProgressBar, StatusBadge } from "../components/ui";
+import { useToast } from "../components/ToastProvider";
 
 function Settings() {
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ function Settings() {
   const [saving, setSaving] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [notice, setNotice] = useState({ type: "", text: "" });
+  const showToast = useToast();
 
   const formatEmploymentType = (value) => value ? value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()) : "—";
 
@@ -59,6 +62,7 @@ function Settings() {
       localStorage.setItem("user", JSON.stringify(nextUser));
       if (avatarPreview) localStorage.setItem("profile_picture", avatarPreview);
       setNotice({ type: "success", text: "Profile updated successfully." });
+      showToast("Profile updated successfully.");
       setIsEditingProfile(false);
     } catch (error) {
       const detail = error.response?.data?.detail || "Unable to update profile.";
@@ -95,23 +99,17 @@ function Settings() {
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Settings</p>
-          <h1>{user.is_employee_profile ? "My profile" : "Account preferences"}</h1>
-          <p className="page-subtitle">Manage your personal details, employment information, and account security in one place.</p>
-        </div>
-      </div>
+      <PageHeader eyebrow="Settings" title={user.is_employee_profile ? "My profile" : "Account preferences"} description="Manage your personal details, employment information, and account security in one place." />
 
       {notice.text ? <div className={`alert ${notice.type === "success" ? "alert-success" : "alert-error"}`}>{notice.text}</div> : null}
 
       {loading ? (
-        <div className="empty-state">Loading your settings...</div>
+        <EmptyState title="Loading your settings" />
       ) : (
         <div className="settings-stack">
           {user.is_employee_profile && (
             <>
-              <section className="panel-card profile-overview-card">
+              <Card className="profile-overview-card">
                 <div className="profile-overview-card__identity">
                   <div className="avatar-preview profile-overview-card__avatar">
                     {avatarPreview ? <img src={avatarPreview} alt="Profile preview" /> : <span>{(user.first_name || user.email || "U").charAt(0).toUpperCase()}</span>}
@@ -122,17 +120,17 @@ function Settings() {
                     <p>{user.designation || "Employee"} {user.department ? `· ${user.department}` : ""}</p>
                     <div className="profile-overview-card__chips">
                       <span className="pill-chip">{user.employee_code || "Employee"}</span>
-                      <span className={`status-badge ${user.is_active ? "approved" : "pending"}`}>{user.account_status || (user.is_active ? "Active" : "Pending")}</span>
+                      <StatusBadge status={user.is_active ? "approved" : "pending"}>{user.account_status || (user.is_active ? "Active" : "Pending")}</StatusBadge>
                     </div>
                   </div>
                 </div>
                 <div className="profile-overview-card__progress">
                   <span>Onboarding completion</span>
                   <strong>{user.onboarding_completion || 0}%</strong>
-                  <div className="profile-progress-bar"><i style={{ width: `${user.onboarding_completion || 0}%` }} /></div>
+                  <ProgressBar value={user.onboarding_completion || 0} />
                   <small>{user.onboarding_approved || 0} of {user.onboarding_total || 0} required documents approved</small>
                 </div>
-              </section>
+              </Card>
 
               <section className="panel-card profile-employment-card">
                 <div className="panel-head">
@@ -205,7 +203,7 @@ function Settings() {
                 <h3>Account security</h3>
                 <p className="panel-subtitle">Manage two-factor authentication and review your account protection.</p>
               </div>
-              <button className="primary-btn" type="button" onClick={() => navigate(user.is_employee_profile ? "/employee/security" : "/settings/security")}>Manage security</button>
+              <button className="primary-btn" type="button" onClick={() => navigate(user.is_employee_profile ? "/employee/security" : "/hr/settings/security")}>Manage security</button>
             </div>
           </section>
         </div>

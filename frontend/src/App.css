@@ -1206,6 +1206,11 @@
 .ui-data-table th { padding: 11px 14px; background: #f8fbff; color: #64748b; font-size: 0.75rem; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
 .ui-data-table td { padding: 13px 14px; border-top: 1px solid #e2e8f0; color: #334155; }
 .ui-data-table tbody tr:hover { background: #f8fbff; }
+.ui-data-table__row-action { cursor: pointer; }
+.ui-data-table__row-action:focus { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: -3px; }
+.ui-form-field textarea,
+.ui-form-field select { width: 100%; }
+.ui-field-error { margin: 0; color: #b91c1c; font-size: .85rem; }
 .ui-timeline { display: grid; gap: 14px; }
 .ui-timeline__item { position: relative; display: flex; gap: 12px; align-items: flex-start; }
 .ui-timeline__item:not(:last-child)::before { content: ""; position: absolute; top: 17px; left: 5px; width: 1px; height: calc(100% + 8px); background: #dbeafe; }

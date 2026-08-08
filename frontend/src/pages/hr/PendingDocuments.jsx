@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
+import { EmptyState, PageHeader, StatusBadge } from "../../components/ui";
 
 function PendingDocuments() {
   const [documents, setDocuments] = useState([]);
@@ -71,23 +72,17 @@ function PendingDocuments() {
   };
 
   if (loading) {
-    return <div className="empty-state">Loading review queue...</div>;
+    return <EmptyState title="Loading review queue" />;
   }
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Review queue</p>
-          <h1>Pending document review</h1>
-          <p className="page-subtitle">Review employee submissions, inspect files, and approve or reject them with clear context.</p>
-        </div>
-      </div>
+      <PageHeader eyebrow="Review queue" title="Pending document review" description="Review employee submissions, inspect files, and approve or reject them with clear context." />
 
       {error && <div className="alert alert-error">{error}</div>}
 
       {documents.length === 0 ? (
-        <div className="empty-state">No pending documents right now.</div>
+        <EmptyState title="No pending documents" description="New submissions will appear here when they are ready for review." />
       ) : (
         <div className="notification-list">
           {documents.map((doc) => (
@@ -106,7 +101,7 @@ function PendingDocuments() {
 
               <div className="stack">
                 <div className="doc-meta">
-                  <span className={`status-badge ${doc.status?.toLowerCase() || "pending"}`}>{doc.status}</span>
+                  <StatusBadge status={doc.status || "Pending"} />
                   <span>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "-"}</span>
                 </div>
                 <div className="upload-box">

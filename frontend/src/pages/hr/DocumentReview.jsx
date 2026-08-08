@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import api from "../../api/api";
+import { ConfirmDialog, EmptyState, PageHeader, StatusBadge, Timeline } from "../../components/ui";
+import { useToast } from "../../components/ToastProvider";
 
 function DocumentReview() {
   const { id } = useParams();
@@ -12,12 +14,12 @@ function DocumentReview() {
   const [accessInfo, setAccessInfo] = useState({ url: "", filename: "", status: null, error: null });
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const showToast = useToast();
 
   useEffect(() => {
-    let active = true;
     let blobUrl = null;
 
     const fetch = async () => {
@@ -30,7 +32,7 @@ function DocumentReview() {
           try {
             const pendingRes = await api.get("/documents/pending");
             resolvedDoc = pendingRes.data.find((item) => String(item.id) === String(id));
-          } catch (e) {
+          } catch {
             // ignore — we'll still try to fetch access URL
             resolvedDoc = null;
           }
@@ -56,7 +58,7 @@ function DocumentReview() {
           setPreviewUrl(blobUrl);
           setAccessInfo({
             url: "",
-            filename: downloadRes.headers["content-disposition"]?.split("filename=")[1]?.replace(/\"/g, "") || minimalDoc?.original_filename || "",
+            filename: downloadRes.headers["content-disposition"]?.split("filename=")[1]?.replace(/"/g, "") || minimalDoc?.original_filename || "",
             status: downloadRes.status,
             error: null
           });
@@ -85,14 +87,14 @@ function DocumentReview() {
             const status = accessError.response?.status || null;
             const detail = accessError.response?.data?.detail || accessError.message || "Access error";
             setAccessInfo({ url: "", filename: "", status, error: detail });
-            setToast({ type: "error", text: "Unable to load file preview (access may be restricted)." });
+            showToast("Unable to load file preview (access may be restricted).", "error");
           }
         }
 
         const histRes = await api.get(`/documents/${id}/history`).catch(() => ({ data: [] }));
         setHistory(histRes.data || []);
-      } catch (err) {
-        setToast({ type: "error", text: "Unable to load document." });
+      } catch {
+        showToast("Unable to load document.", "error");
       } finally {
         setLoading(false);
       }
@@ -101,27 +103,20 @@ function DocumentReview() {
     fetch();
 
     return () => {
-      active = false;
       if (blobUrl) {
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [id, location.state]);
-
-  const showToast = (t) => {
-    setToast(t);
-    setTimeout(() => setToast(null), 3500);
-  };
+  }, [id, location.state, showToast]);
 
   const handleApprove = async () => {
-    if (!window.confirm("Approve this document? This action cannot be undone.")) return;
     setActionLoading(true);
     try {
       await api.post(`/documents/${id}/approve`);
-      showToast({ type: "success", text: "Document approved." });
+      showToast("Document approved.");
       navigate("/hr/documents");
-    } catch (err) {
-      showToast({ type: "error", text: "Failed to approve document." });
+    } catch {
+      showToast("Failed to approve document.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -129,18 +124,16 @@ function DocumentReview() {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      showToast({ type: "error", text: "Please enter a rejection reason." });
+      showToast("Please enter a rejection reason.", "error");
       return;
     }
-
-    if (!window.confirm("Reject this document and notify the employee?")) return;
     setActionLoading(true);
     try {
       await api.post(`/documents/${id}/reject`, { reason: rejectReason });
-      showToast({ type: "success", text: "Document rejected and employee notified." });
+      showToast("Document rejected and employee notified.");
       navigate("/hr/documents");
-    } catch (err) {
-      showToast({ type: "error", text: "Failed to reject document." });
+    } catch {
+      showToast("Failed to reject document.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -155,7 +148,7 @@ function DocumentReview() {
 
       const newTab = window.open("about:blank", "_blank");
       if (!newTab) {
-        showToast({ type: "error", text: "Unable to open new tab. Please allow popups for this site." });
+        showToast("Unable to open new tab. Please allow popups for this site.", "error");
         return;
       }
 
@@ -187,24 +180,18 @@ function DocumentReview() {
     } catch (err) {
       console.error("Open file error:", err);
       const detail = err.response?.data?.detail || err.message || "Unable to open file";
-      showToast({ type: "error", text: `Unable to open file: ${detail}` });
+      showToast(`Unable to open file: ${detail}`, "error");
     }
   };
 
-  if (loading) return <div className="empty-state">Loading document...</div>;
-  if (!doc) return <div className="empty-state">Document not found.</div>;
+  if (loading) return <EmptyState title="Loading document" />;
+  if (!doc) return <EmptyState title="Document not found" />;
 
   const isPdf = doc.content_type === "application/pdf" || previewUrl.toLowerCase().endsWith(".pdf");
 
   return (
     <div className="page-shell document-review-shell">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Document review</p>
-          <h1>{doc.document_type_name || "Document"}</h1>
-          <p className="page-subtitle">Review submission from {doc.employee_name}</p>
-        </div>
-      </div>
+      <PageHeader eyebrow="Document review" title={doc.document_type_name || "Document"} description={`Review submission from ${doc.employee_name}`} />
 
       <div className="review-grid">
         <aside className="preview-column">
@@ -257,7 +244,7 @@ function DocumentReview() {
             </div>
             <div>
               <p className="helper-text">Status</p>
-              <span className={`status-badge ${doc.status?.toLowerCase()}`}>{doc.status}</span>
+              <StatusBadge status={doc.status} />
             </div>
           </div>
 
@@ -266,34 +253,22 @@ function DocumentReview() {
             {history.length === 0 ? (
               <div className="empty-state">No history available.</div>
             ) : (
-              <div className="timeline">
-                {history.map((h) => (
-                  <div className="timeline-item" key={h.id || h.timestamp}>
-                    <div className="timeline-dot" />
-                    <div>
-                      <strong>{h.action}</strong>
-                      <p className="helper-text">{h.user_name} • {new Date(h.timestamp).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <Timeline items={history.map((item) => ({ id: item.id || item.timestamp, title: item.action, meta: `${item.user_name} · ${new Date(item.timestamp).toLocaleString()}` }))} />
             )}
           </div>
 
           <div className="review-actions">
-            <button className="primary-btn" onClick={handleApprove} disabled={actionLoading}>Approve</button>
+            <button className="primary-btn" onClick={() => setConfirmation("approve")} disabled={actionLoading}>Approve</button>
 
             <div className="reject-box">
               <textarea placeholder="Rejection reason (required)" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
-              <button className="secondary-btn" onClick={handleReject} disabled={actionLoading}>Reject</button>
+              <button className="secondary-btn" onClick={() => setConfirmation("reject")} disabled={actionLoading}>Reject</button>
             </div>
           </div>
         </section>
       </div>
 
-      {toast && (
-        <div className={`toast ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.text}</div>
-      )}
+      {confirmation && <ConfirmDialog title={confirmation === "approve" ? "Approve document?" : "Reject document?"} description={confirmation === "approve" ? "This approval cannot be undone." : "The employee will be notified with your rejection reason."} confirmLabel={confirmation === "approve" ? "Approve" : "Reject"} tone={confirmation === "reject" ? "danger" : "primary"} loading={actionLoading} onCancel={() => setConfirmation(null)} onConfirm={() => { setConfirmation(null); if (confirmation === "approve") handleApprove(); else handleReject(); }} />}
     </div>
   );
 }

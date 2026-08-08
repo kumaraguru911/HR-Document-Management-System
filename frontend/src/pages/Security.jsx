@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../api/api";
 import { Card, EmptyState, PageHeader, StatusBadge } from "../components/ui";
 
 function Security() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState({});
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -85,7 +86,7 @@ function Security() {
 
   return (
     <div className="page-shell security-page">
-      <PageHeader eyebrow="Account security" title="Keep your account protected" description="Use two-factor authentication to add a second verification step when you sign in." actions={<button className="secondary-btn" type="button" onClick={() => navigate(user.is_employee_profile ? "/employee/profile" : "/settings")}>Back to profile</button>} />
+      <PageHeader eyebrow="Account security" title="Keep your account protected" description="Use two-factor authentication to add a second verification step when you sign in." actions={<button className="secondary-btn" type="button" onClick={() => navigate(user.is_employee_profile ? "/employee/profile" : location.pathname.startsWith("/hr/") ? "/hr/settings" : "/settings")}>Back to profile</button>} />
 
       {notice.text && <div className={`alert ${notice.type === "success" ? "alert-success" : "alert-error"}`} role="status">{notice.text}</div>}
 

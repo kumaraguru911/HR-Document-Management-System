@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
+import { DataTable, EmptyState, FormField, PageHeader, Skeleton, StatusBadge } from "../../components/ui";
+import { useToast } from "../../components/ToastProvider";
 
 function DocumentSettings() {
   const [documentTypes, setDocumentTypes] = useState([]);
@@ -21,6 +23,7 @@ function DocumentSettings() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const showToast = useToast();
 
   // ----------------------------------------
   // Error helper
@@ -125,6 +128,7 @@ function DocumentSettings() {
       );
 
       setSuccess("Document type added successfully.");
+      showToast("Document type added successfully.");
 
       setTypeForm({
         name: "",
@@ -209,6 +213,7 @@ function DocumentSettings() {
       setSuccess(
         "Document requirement added successfully."
       );
+      showToast("Document requirement added successfully.");
 
       setRequirementForm({
         document_type_id: "",
@@ -234,15 +239,7 @@ function DocumentSettings() {
 
   return (
     <div className="page-shell">
-      <section className="page-header hero-banner">
-        <div className="hero-copy">
-          <p className="eyebrow">Configuration</p>
-          <h1>Document settings</h1>
-          <p className="page-subtitle">
-            Manage document types, set requirements by employment type, and control the onboarding workflow.
-          </p>
-        </div>
-      </section>
+      <PageHeader eyebrow="Configuration" title="Document settings" description="Manage document types, set requirements by employment type, and control the onboarding workflow." />
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
@@ -257,34 +254,11 @@ function DocumentSettings() {
         </div>
 
         {loadingTypes ? (
-          <p className="helper-text">Loading document types...</p>
+          <Skeleton lines={3} />
         ) : documentTypes.length === 0 ? (
-          <div className="empty-state">No document types configured yet. Add one below.</div>
+          <EmptyState title="No document types configured" description="Add a document type below to begin configuring requirements." />
         ) : (
-          <div className="table-container">
-            <table className="settings-table">
-              <thead>
-                <tr>
-                  <th>Document name</th>
-                  <th>Description</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documentTypes.map((documentType) => (
-                  <tr key={documentType.id}>
-                    <td><strong>{documentType.name}</strong></td>
-                    <td>{documentType.description || "—"}</td>
-                    <td>
-                      <span className={`status-badge ${documentType.is_active ? "active" : "inactive"}`}>
-                        {documentType.is_active ? "ACTIVE" : "INACTIVE"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable rows={documentTypes} getRowKey={(item) => item.id} columns={[{ key: "name", label: "Document name", render: (item) => <strong>{item.name}</strong> }, { key: "description", label: "Description", render: (item) => item.description || "—" }, { key: "status", label: "Status", render: (item) => <StatusBadge status={item.is_active ? "Active" : "Inactive"} /> }]} />
         )}
       </section>
 
@@ -298,8 +272,7 @@ function DocumentSettings() {
         </div>
 
         <form onSubmit={handleAddDocumentType} className="form-stack">
-          <label className="field">
-            <span>Document name</span>
+          <FormField label="Document name">
             <input
               type="text"
               name="name"
@@ -308,10 +281,9 @@ function DocumentSettings() {
               placeholder="Example: Passport"
               required
             />
-          </label>
+          </FormField>
 
-          <label className="field">
-            <span>Description</span>
+          <FormField label="Description">
             <textarea
               name="description"
               value={typeForm.description}
@@ -319,7 +291,7 @@ function DocumentSettings() {
               placeholder="Explain what this document is for..."
               rows="3"
             />
-          </label>
+          </FormField>
 
           <button type="submit" className="primary-btn" disabled={addingType}>
             {addingType ? "Adding..." : "Add document type"}

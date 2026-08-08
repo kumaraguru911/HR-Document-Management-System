@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../api/api";
+import { DataTable, Drawer, EmptyState, FilterPanel, PageHeader, ProgressBar, StatusBadge } from "../../components/ui";
 
 function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -70,6 +71,13 @@ function Employees() {
   const employmentOptions = useMemo(() => ["All", ...new Set(employees.map((employee) => employee.employment_type).filter(Boolean))], [employees]);
   const statusOptions = useMemo(() => ["All", ...new Set(employees.map((employee) => employee.account_status).filter(Boolean))], [employees]);
 
+  const getProgress = useCallback((employeeId) => {
+    const documents = employeeDocuments[employeeId] || [];
+    if (!documents.length) return 0;
+    const approvedCount = documents.filter((document) => document.status?.toUpperCase() === "APPROVED").length;
+    return Math.round((approvedCount / documents.length) * 100);
+  }, [employeeDocuments]);
+
   const filteredEmployees = useMemo(() => {
     const normalizedQuery = search.trim().toLowerCase();
 
@@ -115,15 +123,7 @@ function Employees() {
 
         return `${left.first_name} ${left.last_name}`.localeCompare(`${right.first_name} ${right.last_name}`);
       });
-  }, [employees, employeeDocuments, search, departmentFilter, employmentFilter, statusFilter, completionFilter, sortBy]);
-
-  const getProgress = (employeeId) => {
-    const documents = employeeDocuments[employeeId] || [];
-    if (!documents.length) return 0;
-
-    const approvedCount = documents.filter((document) => document.status?.toUpperCase() === "APPROVED").length;
-    return Math.round((approvedCount / documents.length) * 100);
-  };
+  }, [employees, employeeDocuments, search, departmentFilter, employmentFilter, statusFilter, completionFilter, sortBy, getProgress]);
 
   const getDocumentStatus = (employeeId) => {
     const documents = employeeDocuments[employeeId] || [];
@@ -223,16 +223,9 @@ function Employees() {
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Employee CRM</p>
-          <h1>Employee directory</h1>
-          <p className="page-subtitle">Search, filter, and follow each employee’s onboarding journey from a single view.</p>
-        </div>
-        <button className="primary-btn" onClick={() => setShowInviteForm((previous) => !previous)}>
+      <PageHeader eyebrow="Employee CRM" title="Employee directory" description="Search, filter, and follow each employee’s onboarding journey from a single view." actions={<button className="primary-btn" onClick={() => setShowInviteForm((previous) => !previous)}>
           {showInviteForm ? "Hide invite form" : "Invite employee"}
-        </button>
-      </div>
+        </button>} />
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
@@ -291,7 +284,7 @@ function Employees() {
           </div>
         </div>
 
-        <div className="crm-toolbar">
+        <FilterPanel>
           <label className="crm-field">
             <span>Search</span>
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name, code, department..." />
@@ -337,68 +330,23 @@ function Employees() {
               <option value="progress">Onboarding progress</option>
             </select>
           </label>
-        </div>
+        </FilterPanel>
 
         {loading ? (
-          <div className="empty-state">Loading employee CRM view...</div>
+          <EmptyState title="Loading employee directory" />
         ) : (
-          <div className="crm-table-wrap">
-            <table className="crm-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Code</th>
-                  <th>Designation</th>
-                  <th>Department</th>
-                  <th>Onboarding</th>
-                  <th>Documents</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEmployees.map((employee) => {
-                  const progress = getProgress(employee.id);
-                  const documentStatus = getDocumentStatus(employee.id);
-                  return (
-                    <tr key={employee.id} onClick={() => handleOpenEmployee(employee)}>
-                      <td>
-                        <div className="crm-employee-cell">
-                          <div className="crm-avatar">{(employee.first_name?.[0] || "E").toUpperCase()}</div>
-                          <div>
-                            <strong>{`${employee.first_name} ${employee.last_name}`}</strong>
-                            <p>{employee.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{employee.employee_code}</td>
-                      <td>{employee.designation}</td>
-                      <td>{employee.department}</td>
-                      <td>
-                        <div className="crm-progress-cell">
-                          <div className="crm-progress-bar">
-                            <span style={{ width: `${progress}%` }} />
-                          </div>
-                          <small>{progress}%</small>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${documentStatus.toLowerCase().replace(/\s+/g, "-")}`}>{documentStatus}</span>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${employee.account_status?.toLowerCase()}`}>{employee.account_status}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable rows={filteredEmployees} getRowKey={(employee) => employee.id} onRowClick={handleOpenEmployee} emptyTitle="No employees found" emptyDescription="Try changing the filters or invite a new employee." columns={[
+            { key: "employee", label: "Employee", render: (employee) => <div className="crm-employee-cell"><div className="crm-avatar">{(employee.first_name?.[0] || "E").toUpperCase()}</div><div><strong>{`${employee.first_name} ${employee.last_name}`}</strong><p>{employee.email}</p></div></div> },
+            { key: "employee_code", label: "Code" }, { key: "designation", label: "Designation" }, { key: "department", label: "Department" },
+            { key: "progress", label: "Onboarding", render: (employee) => <ProgressBar value={getProgress(employee.id)} detail={`${getProgress(employee.id)}%`} /> },
+            { key: "documents", label: "Documents", render: (employee) => <StatusBadge status={getDocumentStatus(employee.id)} /> },
+            { key: "account_status", label: "Status", render: (employee) => <StatusBadge status={employee.account_status} /> },
+          ]} />
         )}
       </section>
 
       {selectedEmployee && (
-        <div className="crm-drawer-backdrop" onClick={() => setSelectedEmployee(null)}>
-          <aside className="crm-drawer" onClick={(event) => event.stopPropagation()}>
+        <Drawer open title={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`} description={`${selectedEmployee.designation} · ${selectedEmployee.department}`} onClose={() => setSelectedEmployee(null)}>
             {detailLoading ? (
               <div className="empty-state">Loading employee profile...</div>
             ) : (
@@ -527,8 +475,7 @@ function Employees() {
                 </div>
               </>
             )}
-          </aside>
-        </div>
+        </Drawer>
       )}
     </div>
   );

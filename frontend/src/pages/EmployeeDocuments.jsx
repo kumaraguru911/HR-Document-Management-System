@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../api/api";
-import { FilePicker } from "../components/ui";
+import { Card, EmptyState, FilePicker, Modal, PageHeader, ProgressBar, Skeleton, StatusBadge } from "../components/ui";
+import { useToast } from "../components/ToastProvider";
 
 const MAX_HISTORY_ITEMS = 3;
 
@@ -40,6 +41,7 @@ function EmployeeDocuments() {
   const [downloadingId, setDownloadingId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const showToast = useToast();
 
   const fetchDocumentData = async () => {
     try {
@@ -226,6 +228,7 @@ function EmployeeDocuments() {
       await fetchDocumentData();
       setUploadSuccess(true);
       setMessage(`${uploadFile.name} was uploaded successfully and is awaiting HR review.`);
+      showToast(`${uploadFile.name} was uploaded and sent to HR.`);
     } catch (err) {
       console.error("Upload error:", err);
       const detail = err.response?.data?.detail;
@@ -250,29 +253,20 @@ function EmployeeDocuments() {
     });
   };
 
-  if (loading) return <div className="empty-state">Loading your document checklist...</div>;
+  if (loading) return <Skeleton lines={6} />;
 
   return (
     <div className="page-shell employee-documents-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">My documents</p>
-          <h1>Document checklist</h1>
-          <p className="page-subtitle">Complete your required uploads and check the latest feedback from HR.</p>
-        </div>
-        <button className="primary-btn" type="button" onClick={() => openUpload()} disabled={uploadableDocuments.length === 0}>
-          Upload document
-        </button>
-      </div>
+      <PageHeader eyebrow="My documents" title="Document checklist" description="Complete your required uploads and check the latest feedback from HR." actions={<button className="primary-btn" type="button" onClick={() => openUpload()} disabled={uploadableDocuments.length === 0}>Upload document</button>} />
 
       {error && <div className="alert alert-error" role="alert">{error}</div>}
       {message && <div className="alert alert-success" role="status">{message}</div>}
 
       {documentCards.length === 0 ? (
-        <div className="empty-state">No required documents were found for your profile.</div>
+        <EmptyState title="No required documents" description="There are no document requirements assigned to your profile." />
       ) : (
         <div className="content-grid onboarding-lower employee-documents-layout">
-          <section className="panel-card panel-card--wide">
+          <Card className="panel-card--wide">
             <div className="panel-head">
               <div>
                 <h3>Required documents</h3>
@@ -294,7 +288,7 @@ function EmployeeDocuments() {
                       <p>{document.description || "Upload a clear, valid copy for HR verification."}</p>
                     </div>
                     <div className="employee-document-row__actions">
-                      <span className={`status-badge ${getStatusClass(document.displayStatus)}`}>{document.displayStatus}</span>
+                      <StatusBadge status={getStatusClass(document.displayStatus)}>{document.displayStatus}</StatusBadge>
                       <button className="secondary-btn" type="button" onClick={() => toggleDocument(document.document_type_id)}>
                         {isDocumentExpanded ? "Close" : document.needsAttention ? "Take action" : "View details"}
                       </button>
@@ -358,10 +352,10 @@ function EmployeeDocuments() {
               );
             })}
             </div>
-          </section>
+          </Card>
 
           <aside className="stack dashboard-side-stack">
-            <section className="panel-card">
+            <Card>
               <div className="panel-head">
                 <div>
                   <h3>Next steps</h3>
@@ -369,7 +363,7 @@ function EmployeeDocuments() {
                 </div>
               </div>
               {attentionDocuments.length === 0 ? (
-                <div className="empty-state">Everything is submitted. We’ll let you know if HR needs anything else.</div>
+                <EmptyState title="Everything is submitted" description="We’ll let you know if HR needs anything else." />
               ) : (
                 <div className="task-list">
                   {attentionDocuments.map((document) => (
@@ -380,9 +374,9 @@ function EmployeeDocuments() {
                   ))}
                 </div>
               )}
-            </section>
+            </Card>
 
-            <section className="panel-card">
+            <Card>
               <div className="panel-head">
                 <div>
                   <h3>Checklist progress</h3>
@@ -394,23 +388,14 @@ function EmployeeDocuments() {
                 <div><span>In review</span><strong>{summary.inReview}</strong></div>
                 <div><span>Needs attention</span><strong>{summary.attention}</strong></div>
               </div>
-            </section>
+              <ProgressBar value={summary.total ? Math.round((summary.approved / summary.total) * 100) : 0} label="Approved requirements" />
+            </Card>
           </aside>
         </div>
       )}
 
       {isUploadOpen && (
-        <div className="profile-overlay upload-overlay" onClick={closeUpload}>
-          <section className="upload-modal" role="dialog" aria-modal="true" aria-labelledby="upload-document-title" onClick={(event) => event.stopPropagation()}>
-            <div className="panel-head">
-              <div>
-                <p className="eyebrow">Upload document</p>
-                <h3 id="upload-document-title">Submit a required document</h3>
-                <p className="panel-subtitle">Choose the document type, check your file, and submit it to HR.</p>
-              </div>
-              <button className="ghost-btn" type="button" onClick={closeUpload}>Close</button>
-            </div>
-
+        <Modal title="Submit a required document" description="Choose the document type, check your file, and submit it to HR." onClose={closeUpload} className="upload-modal">
             {uploadSuccess ? (
               <div className="upload-success-state">
                 <span className="upload-success-state__icon">✓</span>
@@ -460,8 +445,7 @@ function EmployeeDocuments() {
                 </div>
               </div>
             )}
-          </section>
-        </div>
+        </Modal>
       )}
     </div>
   );

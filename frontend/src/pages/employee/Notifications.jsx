@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
+import { EmptyState, FilterPanel, PageHeader, Skeleton } from "../../components/ui";
+import { useToast } from "../../components/ToastProvider";
 
 const notificationTypeOptions = [
   { value: "ALL", label: "All notifications" },
@@ -60,6 +62,7 @@ function Notifications() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
+  const showToast = useToast();
 
   const fetchNotifications = async () => {
     try {
@@ -88,6 +91,7 @@ function Notifications() {
           notification.id === notificationId ? { ...notification, is_read: true } : notification
         )
       );
+      showToast("Notification marked as read.");
     } catch (err) {
       console.error("Mark as read error:", err);
       const detail = err.response?.data?.detail;
@@ -100,6 +104,7 @@ function Notifications() {
       setError("");
       await api.patch("/notifications/read-all");
       setNotifications((previous) => previous.map((notification) => ({ ...notification, is_read: true })));
+      showToast("All notifications marked as read.");
     } catch (err) {
       console.error("Mark all read error:", err);
       const detail = err.response?.data?.detail;
@@ -177,23 +182,16 @@ function Notifications() {
   }, [filteredNotifications]);
 
   if (loading) {
-    return <div className="empty-state">Loading your inbox...</div>;
+    return <Skeleton lines={5} />;
   }
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Notifications</p>
-          <h1>Your inbox</h1>
-          <p className="page-subtitle">Keep track of approvals, rejections, and document requests in one place.</p>
-        </div>
-        <button className="secondary-btn" onClick={() => navigate("/employee")}>Back to dashboard</button>
-      </div>
+      <PageHeader eyebrow="Notifications" title="Your inbox" description="Keep track of approvals, rejections, and document requests in one place." actions={<button className="secondary-btn" onClick={() => navigate("/employee")}>Back to dashboard</button>} />
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      <div className="notification-toolbar">
+      <FilterPanel actions={<button className="primary-btn" type="button" onClick={handleMarkAllRead}>Mark all read</button>}>
         <div className="crm-field">
           <label htmlFor="employee-notification-search">Search</label>
           <input
@@ -220,13 +218,10 @@ function Notifications() {
           </select>
         </div>
 
-        <button className="primary-btn" type="button" onClick={handleMarkAllRead}>
-          Mark all read
-        </button>
-      </div>
+      </FilterPanel>
 
       {groupedNotifications.length === 0 ? (
-        <div className="empty-state">No notifications found.</div>
+        <EmptyState title="No notifications found" description="Try a different search or filter." />
       ) : (
         groupedNotifications.map(([sectionTitle, sectionNotifications]) => (
           <section className="notification-section" key={sectionTitle}>

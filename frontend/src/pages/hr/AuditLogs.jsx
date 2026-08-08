@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
+import { EmptyState, FilterPanel, PageHeader, Timeline } from "../../components/ui";
 
 const actionOptions = [
   { value: "ALL", label: "All actions" },
@@ -95,13 +96,7 @@ function AuditLogs() {
 
   return (
     <div className="page-shell">
-      <section className="page-header">
-        <div>
-          <p className="eyebrow">Activity tracking</p>
-          <h1>Audit logs</h1>
-          <p className="page-subtitle">Review the complete activity history of HR actions with advanced search and filtering options.</p>
-        </div>
-      </section>
+      <PageHeader eyebrow="Activity tracking" title="Audit logs" description="Review the complete activity history of HR actions with advanced search and filtering options." />
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -113,7 +108,7 @@ function AuditLogs() {
           </div>
         </div>
 
-        <form className="notification-toolbar" onSubmit={handleSearchSubmit}>
+        <form onSubmit={handleSearchSubmit}><FilterPanel actions={<><button type="submit" className="primary-btn">Apply filters</button><button type="button" className="ghost-btn" onClick={handleReset}>Reset</button></>}>
           <div className="crm-field">
             <label htmlFor="audit-search">Search logs</label>
             <input
@@ -158,35 +153,16 @@ function AuditLogs() {
             />
           </div>
 
-          <button type="submit" className="primary-btn">
-            Apply filters
-          </button>
-          <button type="button" className="ghost-btn" onClick={handleReset}>
-            Reset
-          </button>
-        </form>
+        </FilterPanel></form>
 
         {loading ? (
           <p className="helper-text">Loading activity logs...</p>
         ) : error ? (
           <p className="error-text">{error}</p>
         ) : logs.length === 0 ? (
-          <div className="empty-state">No audit activity found for the selected filters.</div>
+          <EmptyState title="No audit activity found" description="Try broadening the selected filters." />
         ) : (
-          <div className="activity-list">
-            {logs.map((log) => (
-              <article key={log.id} className="activity-item">
-                <span className="activity-dot" />
-                <div>
-                  <strong>{renderLogMessage(log)}</strong>
-                  {log.details && <p>{log.details}</p>}
-                  <p className="notification-meta">
-                    {new Date(log.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
+          <Timeline items={logs.map((log) => ({ id: log.id, title: renderLogMessage(log), description: log.details, meta: new Date(log.created_at).toLocaleString() }))} />
         )}
       </section>
     </div>
