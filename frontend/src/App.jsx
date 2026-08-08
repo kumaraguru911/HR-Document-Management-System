@@ -28,6 +28,7 @@ import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeDocuments from "./pages/EmployeeDocuments";
 import Notifications from "./pages/employee/Notifications";
 import Settings from "./pages/Settings";
+import Security from "./pages/Security";
 
 function App() {
   return (
@@ -131,6 +132,15 @@ function App() {
           element={
             <ProtectedRoute allowedRole={["HR", "EMPLOYEE"]}>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings/security"
+          element={
+            <ProtectedRoute allowedRole={["HR", "EMPLOYEE"]}>
+              <Security />
             </ProtectedRoute>
           }
         />

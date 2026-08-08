@@ -42,6 +42,7 @@ from app.auth.two_factor import (
 from app.core.config import settings
 from app.database.session import get_db
 from app.employees.models import Employee
+from app.documents.service import get_employee_checklist
 
 
 router = APIRouter(
@@ -337,6 +338,10 @@ def _build_user_response(db: Session, current_user: User) -> UserResponse:
         select(Employee).where(Employee.user_id == current_user.id)
     )
 
+    checklist = get_employee_checklist(db, current_user.id) if employee_profile else []
+    approved_count = sum(item["status"] == "APPROVED" for item in checklist)
+    total_documents = len(checklist)
+
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
@@ -346,6 +351,15 @@ def _build_user_response(db: Session, current_user: User) -> UserResponse:
         first_name=employee_profile.first_name if employee_profile else None,
         last_name=employee_profile.last_name if employee_profile else None,
         is_employee_profile=employee_profile is not None,
+        employee_code=employee_profile.employee_code if employee_profile else None,
+        department=employee_profile.department if employee_profile else None,
+        designation=employee_profile.designation if employee_profile else None,
+        employment_type=(getattr(employee_profile.employment_type, "value", employee_profile.employment_type) if employee_profile else None),
+        joining_date=employee_profile.joining_date if employee_profile else None,
+        account_status=current_user.status.value,
+        onboarding_total=total_documents,
+        onboarding_approved=approved_count,
+        onboarding_completion=round((approved_count / total_documents) * 100) if total_documents else 0,
     )
 
 

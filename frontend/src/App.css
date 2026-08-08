@@ -1980,6 +1980,15 @@
     padding: 18px;
     border-radius: 16px;
   }
+
+  .profile-overview-card__identity {
+    align-items: flex-start;
+  }
+
+  .profile-edit-form,
+  .profile-employment-card .info-stack {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 420px) {
@@ -2015,6 +2024,287 @@
 .settings-stack {
   display: grid;
   gap: 20px;
+}
+
+.profile-overview-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 22px;
+  border: 0;
+  background: linear-gradient(125deg, #0f172a 0%, #1d4ed8 56%, #38bdf8 130%);
+  box-shadow: 0 18px 38px rgba(29, 78, 216, 0.2);
+}
+
+.profile-overview-card__identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.profile-overview-card__avatar {
+  width: 78px;
+  height: 78px;
+  font-size: 1.8rem;
+  border: 3px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.profile-overview-card__identity h2 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.profile-overview-card__identity > div:last-child > p:not(.eyebrow) {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.profile-overview-card .eyebrow {
+  color: #bfdbfe;
+}
+
+.profile-overview-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.profile-overview-card__progress {
+  width: min(290px, 100%);
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.profile-overview-card__progress > span,
+.profile-overview-card__progress small {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.88rem;
+}
+
+.profile-overview-card__progress strong {
+  color: #ffffff;
+  font-size: 1.65rem;
+}
+
+.profile-progress-bar {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-progress-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffffff, #bfdbfe);
+  transition: width 240ms ease;
+}
+
+.profile-information-grid {
+  align-items: start;
+}
+
+.profile-employment-card {
+  padding: 22px;
+}
+
+.profile-employment-card .info-stack {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-employment-card .info-row {
+  min-height: 78px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 13px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f8fbff, #eff6ff);
+}
+
+.profile-employment-card .info-row span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-employment-card .info-row strong {
+  color: #1e3a8a;
+}
+
+.profile-edit-card,
+.profile-security-card {
+  padding: 22px;
+}
+
+.profile-edit-card .settings-section {
+  gap: 20px;
+}
+
+.profile-edit-card .avatar-card {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.profile-edit-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+}
+
+.profile-edit-form .field:first-child,
+.profile-edit-form .primary-btn {
+  grid-column: 1 / -1;
+}
+
+.profile-edit-form .primary-btn {
+  justify-self: start;
+  width: auto;
+  padding: 11px 24px;
+}
+
+.profile-edit-form__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.avatar-upload-btn.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.profile-security-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.profile-security-card .settings-section {
+  align-items: flex-start;
+}
+
+.profile-security-card .info-stack {
+  width: min(480px, 100%);
+}
+
+.profile-security-card .info-row {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.security-page {
+  gap: 20px;
+}
+
+.security-layout {
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  align-items: stretch;
+}
+
+.security-status-card {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 22px;
+  border-color: #fde68a;
+  background: linear-gradient(135deg, #fffbeb, #ffffff);
+}
+
+.security-status-card.is-secure {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4, #ffffff);
+}
+
+.security-status-card__icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.security-status-card.is-secure .security-status-card__icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.security-status-card h2,
+.security-status-card p,
+.security-help-card h3 {
+  margin: 0;
+}
+
+.security-status-card > div > p:not(.eyebrow) {
+  margin-top: 5px;
+  color: #64748b;
+}
+
+.security-help-card {
+  background: #f8fbff;
+}
+
+.security-help-card ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: #475569;
+}
+
+.security-action-card {
+  padding: 22px;
+}
+
+.security-action-card__intro,
+.security-disable {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.security-action-card h3 {
+  margin: 0 0 4px;
+}
+
+.security-verify,
+.security-disable {
+  display: grid;
+  gap: 18px;
+}
+
+.security-verify__content {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding-top: 4px;
+}
+
+.security-disable {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.45fr) auto;
 }
 
 .settings-section {
@@ -2929,6 +3219,15 @@
     min-width: 0;
     width: 100%;
   }
+
+  .profile-overview-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .security-disable {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2980,6 +3279,22 @@
   }
 
   .app-shell {
+    flex-direction: column;
+  }
+
+  .profile-edit-form,
+  .profile-employment-card .info-stack,
+  .security-status-card,
+  .security-verify__content {
+    grid-template-columns: 1fr;
+  }
+
+  .security-status-card .status-badge {
+    justify-self: start;
+  }
+
+  .security-action-card__intro {
+    align-items: flex-start;
     flex-direction: column;
   }
 }
