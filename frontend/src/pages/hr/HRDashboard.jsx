@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
+import { ChartCard, KpiWidget, Timeline } from "../../components/ui";
 
 function HRDashboard() {
   const navigate = useNavigate();
@@ -192,25 +193,12 @@ function HRDashboard() {
 
       <section className="kpi-grid">
         {metricsCards.map((metric) => (
-          <article key={metric.title} className="kpi-card">
-            <div className="metric-top">
-              <p className="eyebrow">{metric.title}</p>
-              <span className="status-badge pending">{metric.tag}</span>
-            </div>
-            <strong>{loading ? "—" : metric.value}</strong>
-            <p>{metric.detail}</p>
-          </article>
+          <KpiWidget key={metric.title} label={metric.title} value={loading ? "—" : metric.value} detail={metric.detail} tone={metric.title.includes("Rejected") ? "red" : metric.title.includes("Pending") ? "amber" : "blue"} />
         ))}
       </section>
 
       <section className="chart-grid">
-        <article className="panel-card chart-card">
-          <div className="panel-head">
-            <div>
-              <h3>Onboarding progress</h3>
-              <p className="panel-subtitle">Current readiness across the onboarding pipeline.</p>
-            </div>
-          </div>
+        <ChartCard title="Onboarding progress" description="Current readiness across the onboarding pipeline.">
           <div className="chart-stack">
             {onboardingProgress.map((item) => {
               const percentage = Math.round((item.value / item.total) * 100);
@@ -228,15 +216,9 @@ function HRDashboard() {
               );
             })}
           </div>
-        </article>
+        </ChartCard>
 
-        <article className="panel-card chart-card">
-          <div className="panel-head">
-            <div>
-              <h3>Review trends</h3>
-              <p className="panel-subtitle">Weekly momentum across approvals and rejections.</p>
-            </div>
-          </div>
+        <ChartCard title="Review trends" description="Weekly momentum across approvals and rejections.">
           <div className="trend-bars">
             {reviewTrend.map((day) => (
               <div key={day.label} className="trend-bar">
@@ -246,15 +228,9 @@ function HRDashboard() {
               </div>
             ))}
           </div>
-        </article>
+        </ChartCard>
 
-        <article className="panel-card chart-card">
-          <div className="panel-head">
-            <div>
-              <h3>Department mix</h3>
-              <p className="panel-subtitle">Where employees are currently distributed.</p>
-            </div>
-          </div>
+        <ChartCard title="Department mix" description="Where employees are currently distributed.">
           <div className="department-list">
             {departmentBreakdown.map((department) => (
               <div key={department.name} className="department-item">
@@ -268,7 +244,7 @@ function HRDashboard() {
               </div>
             ))}
           </div>
-        </article>
+        </ChartCard>
       </section>
 
       <section className="content-grid dashboard-lower">
@@ -285,15 +261,7 @@ function HRDashboard() {
             {loading ? (
               <div className="empty-state">Loading activity from the database...</div>
             ) : activityFeed.length > 0 ? (
-              activityFeed.map((item, index) => (
-                <div key={`${item.title}-${index}`} className="timeline-item">
-                  <div className={`timeline-dot timeline-dot--${item.tone}`} />
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.meta}</p>
-                  </div>
-                </div>
-              ))
+              <Timeline items={activityFeed.map((item) => ({ title: item.title, description: item.meta }))} />
             ) : (
               <div className="empty-state">No activity entries found yet.</div>
             )}

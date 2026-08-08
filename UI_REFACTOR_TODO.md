@@ -3,11 +3,11 @@
 Dark theme support is intentionally out of scope.
 
 - [ ] Create a shared responsive application shell for employee and HR areas.
-  - [ ] Collapsible sidebar
-  - [ ] Sticky top navigation
-  - [ ] Breadcrumbs
-  - [ ] Profile dropdown
-  - [ ] Notification bell with unread count
+  - [x] Employee collapsible sidebar
+  - [x] Employee sticky top navigation and breadcrumbs
+  - [x] Employee profile dropdown
+  - [x] Employee notification bell with unread count
+  - [ ] Migrate HR shell to the shared application-shell implementation
 - [x] Add shared primitives in `frontend/src/components/ui`.
   - [x] Page headers, cards, status badges, progress bars
   - [x] Empty states and skeleton loaders
@@ -17,7 +17,7 @@ Dark theme support is intentionally out of scope.
 - [ ] Add shared data-display primitives.
   - [x] Pagination-ready table component
   - [x] KPI widget
-  - [ ] Chart wrapper
+  - [x] Chart wrapper
   - [x] Timeline
   - [x] Drawer
 - [ ] Standardize forms and validation messages.
@@ -27,6 +27,7 @@ Dark theme support is intentionally out of scope.
   - [x] Dashboard KPI and activity timeline
   - [ ] Notifications, profile, and documents lists
 - [ ] Migrate HR pages to shared primitives.
-  - [ ] Dashboard, employees, review queue, audit logs, and document settings
+  - [x] Dashboard KPI widgets, chart cards, and activity timeline
+  - [ ] Employees, review queue, audit logs, and document settings
 - [ ] Replace remaining page-specific feedback UI with global toast and confirmation flows.
 - [ ] Verify desktop/mobile layouts, keyboard navigation, and existing API flows.

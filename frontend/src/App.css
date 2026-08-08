@@ -829,6 +829,9 @@
 }
 
 .page-topbar {
+  position: sticky;
+  top: 16px;
+  z-index: 20;
   display: flex;
   justify-content: space-between;
   align-items: center;

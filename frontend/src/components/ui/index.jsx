@@ -92,3 +92,7 @@ export function Drawer({ open, title, description, children, onClose, position =
   if (!open) return null;
   return <div className={`ui-drawer-backdrop ui-drawer-backdrop--${position}`} onMouseDown={onClose}><aside className="ui-drawer" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}><div className="ui-modal__header"><div><h2>{title}</h2>{description && <p>{description}</p>}</div><button className="ghost-btn" type="button" onClick={onClose}>Close</button></div>{children}</aside></div>;
 }
+
+export function ChartCard({ title, description, children, className = "" }) {
+  return <Card className={`chart-card ui-chart-card ${className}`.trim()}><div className="panel-head"><div><h3>{title}</h3>{description && <p className="panel-subtitle">{description}</p>}</div></div>{children}</Card>;
+}
