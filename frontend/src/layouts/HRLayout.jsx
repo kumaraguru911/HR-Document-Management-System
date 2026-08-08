@@ -135,6 +135,9 @@ function HRLayout() {
           <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/hr/notifications">
             <span className="nav-label">Notifications</span>
           </NavLink>
+          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/hr/settings">
+            <span className="nav-label">Settings</span>
+          </NavLink>
         </nav>
 
         <div className="sidebar-footer">

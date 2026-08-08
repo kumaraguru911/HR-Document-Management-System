@@ -286,10 +286,6 @@ def access_document(
             detail="You do not have access to this document"
         )
 
-    result["url"] = str(
-        request.url_for("download_document", document_id=document_id)
-    )
-
     return result
 
 @router.get(

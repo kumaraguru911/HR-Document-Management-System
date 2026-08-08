@@ -20,8 +20,10 @@ function ProtectedRoute({ children, allowedRole }) {
     return <Navigate to="/login" replace />;
   }
 
+  const allowedRoles = Array.isArray(allowedRole) ? allowedRole : [allowedRole].filter(Boolean);
+
   // Logged in, but trying to access another role's page
-  if (allowedRole && user.role !== allowedRole) {
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     if (user.role === "HR") {
       return <Navigate to="/hr" replace />;
     }

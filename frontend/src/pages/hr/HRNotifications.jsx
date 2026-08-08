@@ -104,6 +104,19 @@ function HRNotifications() {
       return;
     }
 
+    const directUrl = notification.access_url;
+    if (directUrl) {
+      const newTab = window.open(directUrl, "_blank", "noopener,noreferrer");
+      if (newTab) {
+        if (!notification.is_read) {
+          handleMarkRead(notification.id);
+        }
+        return;
+      }
+      setError("Unable to open new tab. Please allow popups for this site.");
+      return;
+    }
+
     const newTab = window.open("about:blank", "_blank");
     if (!newTab) {
       setError("Unable to open new tab. Please allow popups for this site.");

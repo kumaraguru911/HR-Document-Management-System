@@ -148,6 +148,11 @@ function DocumentReview() {
 
   const handleOpenFile = async () => {
     try {
+      if (accessInfo.url) {
+        window.open(accessInfo.url, "_blank", "noopener,noreferrer");
+        return;
+      }
+
       const newTab = window.open("about:blank", "_blank");
       if (!newTab) {
         showToast({ type: "error", text: "Unable to open new tab. Please allow popups for this site." });

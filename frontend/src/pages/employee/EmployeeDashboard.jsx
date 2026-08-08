@@ -113,6 +113,20 @@ function EmployeeDashboard() {
   const recentActivity = useMemo(() => {
     const activity = [];
 
+    if (summary.pending > 0) {
+      activity.push({
+        title: "Next step",
+        detail: `You still have ${summary.pending} required item${summary.pending > 1 ? "s" : ""} to complete before onboarding can move forward.`,
+        tone: "important",
+      });
+    } else if (summary.approved === summary.total && summary.total > 0) {
+      activity.push({
+        title: "Onboarding is nearly complete",
+        detail: "All required documents have been approved and your profile is ready for final confirmation.",
+        tone: "good",
+      });
+    }
+
     notifications.slice(0, 3).forEach((notification) => {
       activity.push({
         title: notification.title || "Status update",
@@ -122,15 +136,16 @@ function EmployeeDashboard() {
     });
 
     documents.slice(0, 3).forEach((document) => {
+      const displayStatus = getDisplayStatus(document.status);
       activity.push({
-        title: `${document.name} — ${getDisplayStatus(document.status)}`,
-        detail: `Your ${document.name.toLowerCase()} is currently ${getDisplayStatus(document.status).toLowerCase()}.`,
-        tone: getDisplayStatus(document.status) === "Approved" ? "good" : getDisplayStatus(document.status) === "Rejected" ? "warning" : "neutral",
+        title: `${document.name} — ${displayStatus}`,
+        detail: `Your ${document.name.toLowerCase()} is currently ${displayStatus.toLowerCase()}.`,
+        tone: displayStatus === "Approved" ? "good" : displayStatus === "Rejected" ? "warning" : "neutral",
       });
     });
 
     return activity.slice(0, 5);
-  }, [documents, notifications]);
+  }, [documents, notifications, summary]);
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -231,6 +246,7 @@ function EmployeeDashboard() {
               <div className="stack">
                 <button className="primary-btn" onClick={() => navigate("/employee/documents")}>Go to my documents</button>
                 <button className="secondary-btn" onClick={() => navigate("/employee/notifications")}>Open notifications</button>
+                <button className="ghost-btn" onClick={() => navigate("/settings")}>Open settings</button>
                 <button className="ghost-btn" onClick={handleLogout}>Sign out</button>
               </div>
             </section>

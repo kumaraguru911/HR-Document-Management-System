@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -61,16 +63,21 @@ def create_employee(
     user.id
     )
 
+    employee_name = (
+        f"{employee.first_name} "
+        f"{employee.last_name}"
+    ).strip()
+
     # Build frontend activation URL
     activation_url = (
         f"{settings.frontend_url.rstrip('/')}"
         f"/activate?token={activation_token}"
     )
 
-    employee_name = (
-        f"{employee.first_name} "
-        f"{employee.last_name}"
-    )
+    if employee_name:
+        activation_url = (
+            f"{activation_url}&name={quote(employee_name)}"
+        )
 
     # Send invitation through n8n
     invitation_sent = send_employee_invitation(
@@ -108,16 +115,21 @@ def resend_invitation(
         user.id
     )
 
+    employee_name = (
+        f"{employee.first_name} "
+        f"{employee.last_name}"
+    ).strip()
+
     # Build frontend activation URL
     activation_url = (
         f"{settings.frontend_url.rstrip('/')}"
         f"/activate?token={activation_token}"
     )
 
-    employee_name = (
-        f"{employee.first_name} "
-        f"{employee.last_name}"
-    )
+    if employee_name:
+        activation_url = (
+            f"{activation_url}&name={quote(employee_name)}"
+        )
 
     # Send invitation through n8n
     invitation_sent = send_employee_invitation(

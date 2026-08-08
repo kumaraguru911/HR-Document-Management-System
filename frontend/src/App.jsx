@@ -27,6 +27,7 @@ import HRNotifications from "./pages/hr/HRNotifications";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeDocuments from "./pages/EmployeeDocuments";
 import Notifications from "./pages/employee/Notifications";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -85,6 +86,11 @@ function App() {
             path="notifications"
             element={<HRNotifications />}
           />
+
+          <Route
+            path="settings"
+            element={<Settings />}
+          />
         </Route>
 
         {/* ============== EMPLOYEE ============== */}
@@ -115,6 +121,16 @@ function App() {
           element={
             <ProtectedRoute allowedRole="EMPLOYEE">
               <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Shared settings */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRole={["HR", "EMPLOYEE"]}>
+              <Settings />
             </ProtectedRoute>
           }
         />
