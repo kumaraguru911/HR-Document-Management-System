@@ -15,6 +15,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
 
 import HRLayout from "./layouts/HRLayout";
+import EmployeeLayout from "./layouts/EmployeeLayout";
 
 import HRDashboard from "./pages/hr/HRDashboard";
 import Employees from "./pages/hr/Employees";
@@ -97,34 +98,13 @@ function App() {
         {/* ============== EMPLOYEE ============== */}
 
         {/* Employee Dashboard */}
-        <Route
-          path="/employee"
-          element={
-            <ProtectedRoute allowedRole="EMPLOYEE">
-              <EmployeeDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Employee Documents */}
-        <Route
-          path="/employee/documents"
-          element={
-            <ProtectedRoute allowedRole="EMPLOYEE">
-              <EmployeeDocuments />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Employee Notifications */}
-        <Route
-          path="/employee/notifications"
-          element={
-            <ProtectedRoute allowedRole="EMPLOYEE">
-              <Notifications />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/employee" element={<ProtectedRoute allowedRole="EMPLOYEE"><EmployeeLayout /></ProtectedRoute>}>
+          <Route index element={<EmployeeDashboard />} />
+          <Route path="documents" element={<EmployeeDocuments />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="profile" element={<Settings />} />
+          <Route path="security" element={<Security />} />
+        </Route>
 
         {/* Shared settings */}
         <Route

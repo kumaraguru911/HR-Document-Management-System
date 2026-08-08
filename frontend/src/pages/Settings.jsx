@@ -205,7 +205,7 @@ function Settings() {
                 <h3>Account security</h3>
                 <p className="panel-subtitle">Manage two-factor authentication and review your account protection.</p>
               </div>
-              <button className="primary-btn" type="button" onClick={() => navigate("/settings/security")}>Manage security</button>
+              <button className="primary-btn" type="button" onClick={() => navigate(user.is_employee_profile ? "/employee/security" : "/settings/security")}>Manage security</button>
             </div>
           </section>
         </div>

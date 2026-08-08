@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
+import { KpiWidget, Timeline } from "../../components/ui";
 
 function EmployeeDashboard() {
   const navigate = useNavigate();
@@ -197,21 +198,9 @@ function EmployeeDashboard() {
       ) : (
         <>
           <div className="card-grid">
-            <div className="metric-card">
-              <p className="eyebrow">Required items</p>
-              <strong>{summary.total}</strong>
-              <p>Documents expected for onboarding.</p>
-            </div>
-            <div className="metric-card">
-              <p className="eyebrow">Uploaded</p>
-              <strong>{summary.uploaded}</strong>
-              <p>Items you have already submitted.</p>
-            </div>
-            <div className="metric-card">
-              <p className="eyebrow">Status</p>
-              <strong>{summary.pending > 0 ? "In progress" : "Ready"}</strong>
-              <p>Your next action is clear and visible.</p>
-            </div>
+            <KpiWidget label="Required items" value={summary.total} detail="Documents expected for onboarding." />
+            <KpiWidget label="Uploaded" value={summary.uploaded} detail="Items you have already submitted." tone="green" />
+            <KpiWidget label="Status" value={summary.pending > 0 ? "In progress" : "Ready"} detail="Your next action is clear and visible." tone={summary.pending > 0 ? "amber" : "green"} />
           </div>
 
           <div className="content-grid">
@@ -250,7 +239,7 @@ function EmployeeDashboard() {
               <div className="stack">
                 <button className="primary-btn" onClick={() => navigate("/employee/documents")}>Go to my documents</button>
                 <button className="secondary-btn" onClick={() => navigate("/employee/notifications")}>Open notifications</button>
-                <button className="ghost-btn" onClick={() => navigate("/settings")}>Open settings</button>
+                <button className="ghost-btn" onClick={() => navigate("/employee/profile")}>Open profile</button>
                 <button className="ghost-btn" onClick={handleLogout}>Sign out</button>
               </div>
             </section>
@@ -315,17 +304,7 @@ function EmployeeDashboard() {
                     <p className="panel-subtitle">A reassuring summary of your latest submissions.</p>
                   </div>
                 </div>
-                <div className="activity-list">
-                  {recentActivity.map((item) => (
-                    <div className="activity-item" key={`${item.title}-${item.detail}`}>
-                      <span className={`activity-dot ${item.tone === "important" ? "dot-important" : item.tone === "warning" ? "dot-warning" : item.tone === "good" ? "dot-good" : ""}`} />
-                      <div>
-                        <strong>{item.title}</strong>
-                        <p>{item.detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <Timeline items={recentActivity.map((item) => ({ title: item.title, description: item.detail }))} />
               </section>
             </div>
           </div>

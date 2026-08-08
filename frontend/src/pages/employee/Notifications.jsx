@@ -113,7 +113,7 @@ function Notifications() {
     }
 
     if (["ACCOUNT_UPDATED", "ACCOUNT_SECURITY"].includes(notification.type)) {
-      return { path: "/settings" };
+      return { path: "/employee/profile" };
     }
 
     return { path: "/employee" };

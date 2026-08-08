@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../api/api";
+import { FilePicker } from "../components/ui";
 
 const MAX_HISTORY_ITEMS = 3;
 
@@ -433,11 +434,7 @@ function EmployeeDocuments() {
                 <div className="upload-step">
                   <span>2</span>
                   <div>
-                    <label className="upload-dropzone">
-                      <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(event) => handleUploadFileChange(event.target.files?.[0])} disabled={uploadingId !== null} />
-                      <strong>{uploadFile ? "Choose a different file" : "Choose a file"}</strong>
-                      <small>PDF, JPEG, or PNG · maximum file size 5 MB</small>
-                    </label>
+                    <FilePicker file={uploadFile} onChange={handleUploadFileChange} disabled={uploadingId !== null} />
                   </div>
                 </div>
 

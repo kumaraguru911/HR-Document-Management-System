@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import { Card, EmptyState, PageHeader, StatusBadge } from "../components/ui";
 
 function Security() {
   const navigate = useNavigate();
@@ -80,43 +81,36 @@ function Security() {
     }
   };
 
-  if (loading) return <div className="empty-state">Loading security settings...</div>;
+  if (loading) return <EmptyState title="Loading security settings…" />;
 
   return (
     <div className="page-shell security-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Account security</p>
-          <h1>Keep your account protected</h1>
-          <p className="page-subtitle">Use two-factor authentication to add a second verification step when you sign in.</p>
-        </div>
-        <button className="secondary-btn" type="button" onClick={() => navigate("/settings")}>Back to profile</button>
-      </div>
+      <PageHeader eyebrow="Account security" title="Keep your account protected" description="Use two-factor authentication to add a second verification step when you sign in." actions={<button className="secondary-btn" type="button" onClick={() => navigate(user.is_employee_profile ? "/employee/profile" : "/settings")}>Back to profile</button>} />
 
       {notice.text && <div className={`alert ${notice.type === "success" ? "alert-success" : "alert-error"}`} role="status">{notice.text}</div>}
 
       <div className="content-grid security-layout">
-        <section className={`panel-card security-status-card ${user.is_2fa_enabled ? "is-secure" : ""}`}>
+        <Card className={`security-status-card ${user.is_2fa_enabled ? "is-secure" : ""}`}>
           <span className="security-status-card__icon">{user.is_2fa_enabled ? "✓" : "!"}</span>
           <div>
             <p className="eyebrow">Two-factor authentication</p>
             <h2>{user.is_2fa_enabled ? "Protection is active" : "Add another layer of protection"}</h2>
             <p>{user.is_2fa_enabled ? "Your password and authenticator code are required to sign in." : "An authenticator app helps prevent unauthorized access to your account."}</p>
           </div>
-          <span className={`status-badge ${user.is_2fa_enabled ? "approved" : "pending"}`}>{user.is_2fa_enabled ? "Enabled" : "Not enabled"}</span>
-        </section>
+          <StatusBadge status={user.is_2fa_enabled ? "Approved" : "Pending"}>{user.is_2fa_enabled ? "Enabled" : "Not enabled"}</StatusBadge>
+        </Card>
 
-        <aside className="panel-card security-help-card">
+        <Card as="aside" className="security-help-card">
           <h3>How it works</h3>
           <ol>
             <li>Open your authenticator app.</li>
             <li>Scan the QR code shown here.</li>
             <li>Enter the six-digit code to confirm.</li>
           </ol>
-        </aside>
+        </Card>
       </div>
 
-      <section className="panel-card security-action-card">
+      <Card className="security-action-card">
         {!user.is_2fa_enabled && !setupData && (
           <div className="security-action-card__intro">
             <div><h3>Set up two-factor authentication</h3><p className="panel-subtitle">You will need an authenticator app, such as Google Authenticator or Microsoft Authenticator.</p></div>
@@ -144,7 +138,7 @@ function Security() {
             <button className="secondary-btn" type="submit" disabled={working || disableOtp.length !== 6}>{working ? "Updating…" : "Disable 2FA"}</button>
           </form>
         )}
-      </section>
+      </Card>
     </div>
   );
 }
