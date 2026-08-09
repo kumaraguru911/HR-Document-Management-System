@@ -22,7 +22,7 @@ from app.storage.minio import (
 )
 from app.employees.models import Employee
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.audit.models import AuditAction
 from app.audit.service import create_audit_log
@@ -47,7 +47,8 @@ def create_document_type(
 
     document_type = DocumentType(
         name=data.name,
-        description=data.description
+        description=data.description,
+        tracks_expiry=data.tracks_expiry
     )
 
     db.add(document_type)
@@ -167,8 +168,8 @@ def get_employee_checklist(
                     requirement.document_type.description,
 
                 "required": True,
-
-                "status": document_status
+                "status": document_status,
+                "tracks_expiry": requirement.document_type.tracks_expiry,
             }
         )
 
@@ -262,7 +263,9 @@ def get_employee_documents(db: Session, employee_id: int):
                 document.uploaded_at,
 
             "rejection_reason":
-                document.rejection_reason
+                document.rejection_reason,
+
+            "expiry_date": document.expiry_date
         }
 
         for document in documents
@@ -309,7 +312,9 @@ def get_pending_documents(db: Session):
                 document.uploaded_at,
 
             "rejection_reason":
-                document.rejection_reason
+                document.rejection_reason,
+
+            "expiry_date": document.expiry_date
         }
 
         for document in documents
@@ -322,7 +327,8 @@ def upload_employee_document(
     filename: str,
     content_type: str,
     file_data: bytes,
-    user_id: int
+    user_id: int,
+    expiry_date=None
 ):
     existing_pending = db.scalar(
         select(Document).where(
@@ -355,7 +361,8 @@ def upload_employee_document(
         original_filename=filename,
         object_key=object_key,
         content_type=content_type,
-        file_size=len(file_data)
+        file_size=len(file_data),
+        expiry_date=expiry_date
     )
 
     db.add(document)
@@ -409,6 +416,43 @@ def upload_employee_document(
     db.refresh(document)
 
     return document
+
+
+def get_expiring_documents(db: Session, within_days: int = 60):
+    """Return approved documents that are expired or will expire soon."""
+    today = datetime.now(timezone.utc).date()
+    cutoff = today + timedelta(days=within_days)
+    documents = db.scalars(
+        select(Document)
+        .join(DocumentType)
+        .where(
+            Document.status == DocumentStatus.APPROVED,
+            DocumentType.tracks_expiry.is_(True),
+            Document.expiry_date.is_not(None),
+            Document.expiry_date <= cutoff,
+        )
+        .order_by(Document.expiry_date.asc())
+    ).all()
+
+    return [
+        {
+            "id": document.id,
+            "employee_id": document.employee.id,
+            "employee_code": document.employee.employee_code,
+            "employee_name": f"{document.employee.first_name} {document.employee.last_name}",
+            "document_type_id": document.document_type.id,
+            "document_type_name": document.document_type.name,
+            "original_filename": document.original_filename,
+            "content_type": document.content_type,
+            "file_size": document.file_size,
+            "status": document.status,
+            "uploaded_at": document.uploaded_at,
+            "rejection_reason": document.rejection_reason,
+            "expiry_date": document.expiry_date,
+            "days_until_expiry": (document.expiry_date - today).days,
+        }
+        for document in documents
+    ]
 
 def approve_document(
     db: Session,

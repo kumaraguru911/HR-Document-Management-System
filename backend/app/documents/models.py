@@ -1,8 +1,8 @@
-from sqlalchemy import Boolean, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.session import Base
 import enum
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     BigInteger,
@@ -34,6 +34,12 @@ class DocumentType(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
+        nullable=False
+    )
+
+    tracks_expiry: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
         nullable=False
     )
 
@@ -110,6 +116,12 @@ class Document(Base):
     file_size: Mapped[int] = mapped_column(
         BigInteger,
         nullable=False
+    )
+
+    expiry_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+        index=True
     )
 
     status: Mapped[DocumentStatus] = mapped_column(

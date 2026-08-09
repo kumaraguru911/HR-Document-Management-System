@@ -9,6 +9,7 @@ function HRDashboard() {
   const [user, setUser] = useState({});
   const [pendingDocuments, setPendingDocuments] = useState([]);
   const [readinessQueue, setReadinessQueue] = useState([]);
+  const [expiringDocuments, setExpiringDocuments] = useState([]);
   const [metrics, setMetrics] = useState({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -35,12 +36,13 @@ function HRDashboard() {
 
     const loadDashboardData = async () => {
       try {
-        const [pendingResponse, employeesResponse, notificationsResponse, auditResponse, readinessResponse] = await Promise.all([
+        const [pendingResponse, employeesResponse, notificationsResponse, auditResponse, readinessResponse, expiringResponse] = await Promise.all([
           api.get("/documents/pending"),
           api.get("/employees"),
           api.get("/notifications/my"),
           api.get("/audit"),
           api.get("/employees/readiness"),
+          api.get("/documents/expiring"),
         ]);
 
         const pendingDocs = pendingResponse.data || [];
@@ -149,6 +151,7 @@ function HRDashboard() {
         });
         setPendingDocuments(pendingDocs.slice(0, 3));
         setReadinessQueue((readinessResponse.data || []).filter((item) => item.risk_level !== "LOW").slice(0, 4));
+        setExpiringDocuments((expiringResponse.data || []).slice(0, 3));
         setActivityFeed(feed.slice(0, 6));
         setReviewTrend(days);
         setDepartmentBreakdown(departmentBreakdown);
@@ -331,6 +334,30 @@ function HRDashboard() {
               )}
             </div>
             <button type="button" className="primary-btn" onClick={() => navigate("/hr/documents")}>Open review queue</button>
+          </article>
+
+          <article className="panel-card">
+            <div className="panel-head">
+              <div>
+                <h3>Document compliance</h3>
+                <p className="panel-subtitle">Approved documents expiring in the next 60 days.</p>
+              </div>
+            </div>
+            <div className="review-list">
+              {expiringDocuments.length > 0 ? (
+                expiringDocuments.map((document) => (
+                  <div key={document.id} className="review-item">
+                    <div>
+                      <strong>{document.employee_name}</strong>
+                      <p>{document.document_type_name} · {document.days_until_expiry < 0 ? "Expired" : `${document.days_until_expiry} days left`}</p>
+                    </div>
+                    <span className={`readiness-risk readiness-risk--${document.days_until_expiry < 0 ? "high" : "medium"}`}>{document.days_until_expiry < 0 ? "Expired" : "Expiring"}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state">No expiring documents right now.</div>
+              )}
+            </div>
           </article>
 
           <article className="panel-card">

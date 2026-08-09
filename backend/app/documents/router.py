@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status, File, UploadFile
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
 import logging
 from sqlalchemy.orm import Session
@@ -21,7 +23,8 @@ from app.documents.schemas import (
     DocumentResponse,
     HRDocumentResponse,
     DocumentRejectRequest,
-    DocumentAccessResponse
+    DocumentAccessResponse,
+    DocumentExpiryResponse,
 )
 from app.employees.models import Employee
 from app.documents.service import (
@@ -35,7 +38,8 @@ from app.documents.service import (
     approve_document,
     reject_document,
     get_document_access,
-    get_my_documents
+    get_my_documents,
+    get_expiring_documents,
 )
 from app.storage.minio import stream_object
 
@@ -147,6 +151,7 @@ def my_document_submissions(
 async def upload_my_document(
     document_type_id: int,
     file: UploadFile = File(...),
+    expiry_date: date | None = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_employee)
 ):
@@ -171,6 +176,18 @@ async def upload_my_document(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document type not found"
+        )
+
+    if document_type.tracks_expiry and expiry_date is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="An expiry date is required for this document type"
+        )
+
+    if expiry_date is not None and expiry_date <= date.today():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expiry date must be in the future"
         )
 
     requirement = db.scalar(
@@ -226,7 +243,8 @@ async def upload_my_document(
     filename=file.filename or "document",
     content_type=file.content_type,
     file_data=data,
-    user_id=current_user.id
+    user_id=current_user.id,
+    expiry_date=expiry_date
     )
 
     if document is False:
@@ -246,6 +264,23 @@ def list_pending_documents(
     current_user: User = Depends(require_hr)
 ):
     return get_pending_documents(db)
+
+
+@router.get(
+    "/expiring",
+    response_model=list[DocumentExpiryResponse]
+)
+def list_expiring_documents(
+    within_days: int = 60,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    if not 1 <= within_days <= 365:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="within_days must be between 1 and 365"
+        )
+    return get_expiring_documents(db, within_days)
 
 @router.get(
     "/employee/{employee_id}",

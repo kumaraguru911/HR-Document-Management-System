@@ -9,6 +9,7 @@ OnboardIQ is a full-stack onboarding portal for collecting, reviewing, and track
 - Both roles receive document-status notifications.
 - Two-factor authentication is available for account protection.
 - HR receives an explainable onboarding-readiness queue that prioritizes employees at risk of missing their joining date.
+- Expiry-tracked document types collect expiry dates and surface approved documents that are expired or due within 60 days.
 - Files are stored in MinIO, with document metadata, users, requirements, notifications, and audit events stored in PostgreSQL.
 
 ## Tech stack
@@ -146,6 +147,7 @@ curl http://127.0.0.1:8000/health/database
 | `/employees` | Employee invitations, directory, account state, and resend actions |
 | `/employees/readiness` | HR-only prioritized readiness scores, risk reasons, and recommended next actions |
 | `/documents` | Types, requirements, uploads, review actions, history, and downloads |
+| `/documents/expiring` | HR-only compliance queue for approved expiry-tracked documents (defaults to the next 60 days) |
 | `/notifications` | Notification inbox and read-state updates |
 | `/audit` | HR activity history |
 

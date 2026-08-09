@@ -9,6 +9,7 @@ function DocumentSettings() {
   const [typeForm, setTypeForm] = useState({
     name: "",
     description: "",
+    tracks_expiry: false,
   });
 
   const [requirementForm, setRequirementForm] = useState({
@@ -87,11 +88,11 @@ function DocumentSettings() {
   // ----------------------------------------
 
   const handleTypeChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
     setTypeForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -115,6 +116,7 @@ function DocumentSettings() {
       const payload = {
         name: typeForm.name.trim(),
         description: typeForm.description.trim(),
+        tracks_expiry: typeForm.tracks_expiry,
       };
 
       const response = await api.post(
@@ -133,6 +135,7 @@ function DocumentSettings() {
       setTypeForm({
         name: "",
         description: "",
+        tracks_expiry: false,
       });
 
       // Refresh the list
@@ -258,7 +261,7 @@ function DocumentSettings() {
         ) : documentTypes.length === 0 ? (
           <EmptyState title="No document types configured" description="Add a document type below to begin configuring requirements." />
         ) : (
-          <DataTable rows={documentTypes} getRowKey={(item) => item.id} columns={[{ key: "name", label: "Document name", render: (item) => <strong>{item.name}</strong> }, { key: "description", label: "Description", render: (item) => item.description || "—" }, { key: "status", label: "Status", render: (item) => <StatusBadge status={item.is_active ? "Active" : "Inactive"} /> }]} />
+          <DataTable rows={documentTypes} getRowKey={(item) => item.id} columns={[{ key: "name", label: "Document name", render: (item) => <strong>{item.name}</strong> }, { key: "description", label: "Description", render: (item) => item.description || "—" }, { key: "expiry", label: "Expiry tracking", render: (item) => item.tracks_expiry ? "Required" : "Not tracked" }, { key: "status", label: "Status", render: (item) => <StatusBadge status={item.is_active ? "Active" : "Inactive"} /> }]} />
         )}
       </section>
 
@@ -292,6 +295,16 @@ function DocumentSettings() {
               rows="3"
             />
           </FormField>
+
+          <label className="field field-checkbox">
+            <input
+              type="checkbox"
+              name="tracks_expiry"
+              checked={typeForm.tracks_expiry}
+              onChange={handleTypeChange}
+            />
+            <span>This document has an expiry date (for example, a passport or work permit)</span>
+          </label>
 
           <button type="submit" className="primary-btn" disabled={addingType}>
             {addingType ? "Adding..." : "Add document type"}

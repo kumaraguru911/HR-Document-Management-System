@@ -1,18 +1,20 @@
 from pydantic import BaseModel, Field
 
-from datetime import datetime
+from datetime import date, datetime
 
 from app.documents.models import DocumentStatus
 
 class DocumentTypeCreate(BaseModel):
     name: str = Field(min_length=2, max_length=150)
     description: str | None = None
+    tracks_expiry: bool = False
 
 class DocumentTypeResponse(BaseModel):
     id: int
     name: str
     description: str | None
     is_active: bool
+    tracks_expiry: bool
 
     model_config = {
         "from_attributes": True
@@ -39,6 +41,7 @@ class ChecklistItemResponse(BaseModel):
     description: str | None
     required: bool
     status: str
+    tracks_expiry: bool
 
 class DocumentResponse(BaseModel):
     id: int
@@ -50,6 +53,7 @@ class DocumentResponse(BaseModel):
     status: DocumentStatus
     uploaded_at: datetime
     rejection_reason: str | None
+    expiry_date: date | None
 
     model_config = {
         "from_attributes": True
@@ -73,6 +77,10 @@ class HRDocumentResponse(BaseModel):
     uploaded_at: datetime
 
     rejection_reason: str | None
+    expiry_date: date | None
+
+class DocumentExpiryResponse(HRDocumentResponse):
+    days_until_expiry: int
 
 class DocumentRejectRequest(BaseModel):
     reason: str = Field(

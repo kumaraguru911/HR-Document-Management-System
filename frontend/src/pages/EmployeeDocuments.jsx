@@ -34,6 +34,7 @@ function EmployeeDocuments() {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadExpiryDate, setUploadExpiryDate] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -150,6 +151,8 @@ function EmployeeDocuments() {
 
   const attentionDocuments = documentCards.filter((item) => item.needsAttention);
   const uploadableDocuments = documentCards.filter((item) => item.displayStatus === "Not uploaded" || item.displayStatus === "Rejected");
+  const selectedUploadDocument = uploadableDocuments.find((item) => String(item.document_type_id) === String(uploadDocumentTypeId));
+  const expiryDateRequired = Boolean(selectedUploadDocument?.tracks_expiry);
 
   const closeUpload = () => {
     setIsUploadOpen(false);
@@ -157,6 +160,7 @@ function EmployeeDocuments() {
     setUploadFile(null);
     setUploadPreviewUrl("");
     setUploadProgress(0);
+    setUploadExpiryDate("");
     setUploadError("");
     setUploadSuccess(false);
   };
@@ -166,6 +170,7 @@ function EmployeeDocuments() {
     setUploadFile(null);
     setUploadPreviewUrl("");
     setUploadProgress(0);
+    setUploadExpiryDate("");
     setUploadError("");
     setUploadSuccess(false);
     setIsUploadOpen(true);
@@ -211,6 +216,10 @@ function EmployeeDocuments() {
       setUploadError("Choose a PDF, JPEG, or PNG file before uploading.");
       return;
     }
+    if (expiryDateRequired && !uploadExpiryDate) {
+      setUploadError("Enter the expiry date shown on this document.");
+      return;
+    }
 
     try {
       setUploadError("");
@@ -219,6 +228,7 @@ function EmployeeDocuments() {
       setUploadProgress(1);
       const formData = new FormData();
       formData.append("file", uploadFile);
+      if (uploadExpiryDate) formData.append("expiry_date", uploadExpiryDate);
       await api.post(`/documents/my/upload/${documentTypeId}`, formData, {
         onUploadProgress: (event) => {
           if (event.total) setUploadProgress(Math.round((event.loaded / event.total) * 100));
@@ -298,7 +308,7 @@ function EmployeeDocuments() {
                   {isDocumentExpanded && (
                     <div className="employee-document-row__details">
                       <div className="employee-document-info">
-                        <div><span>Upload deadline</span><strong>No deadline set</strong></div>
+                        <div><span>{document.tracks_expiry ? "Document expiry" : "Upload deadline"}</span><strong>{document.tracks_expiry ? (document.latestSubmission?.expiry_date ? formatDate(document.latestSubmission.expiry_date) : "Expiry date required on upload") : "No deadline set"}</strong></div>
                         <div><span>Latest upload</span><strong>{document.latestSubmission ? formatDate(document.latestSubmission.uploaded_at) : "Not uploaded"}</strong></div>
                       </div>
 
@@ -423,6 +433,17 @@ function EmployeeDocuments() {
                   </div>
                 </div>
 
+                {expiryDateRequired && (
+                  <div className="upload-step">
+                    <span>3</span>
+                    <div>
+                      <label htmlFor="upload-expiry-date">Document expiry date</label>
+                      <input id="upload-expiry-date" type="date" value={uploadExpiryDate} min={new Date().toISOString().slice(0, 10)} onChange={(event) => { setUploadExpiryDate(event.target.value); setUploadError(""); }} disabled={uploadingId !== null} required />
+                      <small>Enter the expiry date printed on your {selectedUploadDocument?.name}.</small>
+                    </div>
+                  </div>
+                )}
+
                 {uploadFile && (
                   <div className="upload-preview">
                     {uploadPreviewUrl ? <img src={uploadPreviewUrl} alt={`Preview of ${uploadFile.name}`} /> : <span className="upload-preview__file-icon">PDF</span>}
@@ -439,7 +460,7 @@ function EmployeeDocuments() {
 
                 <div className="upload-workflow__actions">
                   <button className="secondary-btn" type="button" onClick={closeUpload} disabled={uploadingId !== null}>Cancel</button>
-                  <button className="primary-btn" type="button" onClick={handleUpload} disabled={uploadingId !== null || !uploadFile || !uploadDocumentTypeId}>
+                  <button className="primary-btn" type="button" onClick={handleUpload} disabled={uploadingId !== null || !uploadFile || !uploadDocumentTypeId || (expiryDateRequired && !uploadExpiryDate)}>
                     {uploadingId !== null ? "Uploading…" : "Upload document"}
                   </button>
                 </div>
