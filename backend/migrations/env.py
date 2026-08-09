@@ -18,6 +18,7 @@ from app.documents.models import (
 from app.audit.models import AuditLog
 
 from app.notifications.models import Notification
+from app.tasks.models import EmployeeTask
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -25,8 +25,11 @@ import DocumentReview from "./pages/hr/DocumentReview";
 import DocumentSettings from "./pages/hr/DocumentSettings";
 import AuditLogs from "./pages/hr/AuditLogs";
 import HRNotifications from "./pages/hr/HRNotifications";
+import Tasks from "./pages/hr/Tasks";
+import DocumentVault from "./pages/hr/DocumentVault";
 
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
+import EmployeeVault from "./pages/employee/EmployeeVault";
 import EmployeeDocuments from "./pages/EmployeeDocuments";
 import Notifications from "./pages/employee/Notifications";
 import Settings from "./pages/Settings";
@@ -91,6 +94,9 @@ function App() {
             element={<HRNotifications />}
           />
 
+          <Route path="tasks" element={<Tasks />} />
+          <Route path="vault" element={<DocumentVault />} />
+
           <Route
             path="settings"
             element={<Settings />}
@@ -108,6 +114,7 @@ function App() {
         <Route path="/employee" element={<ProtectedRoute allowedRole="EMPLOYEE"><EmployeeLayout /></ProtectedRoute>}>
           <Route index element={<EmployeeDashboard />} />
           <Route path="documents" element={<EmployeeDocuments />} />
+          <Route path="vault" element={<EmployeeVault />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="profile" element={<Settings />} />
           <Route path="security" element={<Security />} />

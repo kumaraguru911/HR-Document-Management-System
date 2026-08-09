@@ -6,6 +6,7 @@ import AppShell from "../components/AppShell";
 const routes = [
   { to: "/employee", label: "Dashboard", crumb: "Dashboard", end: true },
   { to: "/employee/documents", label: "My documents", crumb: "My documents" },
+  { to: "/employee/vault", label: "Document vault", crumb: "Document vault" },
   { to: "/employee/notifications", label: "Notifications", crumb: "Notifications" },
   { to: "/employee/profile", label: "My profile", crumb: "My profile" },
 ];

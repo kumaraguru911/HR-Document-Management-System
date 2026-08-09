@@ -15,6 +15,15 @@ from sqlalchemy import (
     func,
 )
 
+
+class DocumentCategory(str, enum.Enum):
+    ONBOARDING = "ONBOARDING"
+    PAYSLIP = "PAYSLIP"
+    TAX = "TAX"
+    LETTER = "LETTER"
+    POLICY = "POLICY"
+    OTHER = "OTHER"
+
 class DocumentType(Base):
     __tablename__ = "document_types"
 
@@ -40,6 +49,12 @@ class DocumentType(Base):
     tracks_expiry: Mapped[bool] = mapped_column(
         Boolean,
         default=False,
+        nullable=False
+    )
+
+    category: Mapped[DocumentCategory] = mapped_column(
+        Enum(DocumentCategory, name="document_category"),
+        default=DocumentCategory.ONBOARDING,
         nullable=False
     )
 
@@ -142,6 +157,11 @@ class Document(Base):
     )
 
     reviewed_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True
+    )
+
+    uploaded_by: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"),
         nullable=True
     )

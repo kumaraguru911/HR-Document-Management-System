@@ -9,6 +9,8 @@ const routes = [
   { to: "/hr", label: "Dashboard", crumb: "Dashboard", end: true },
   { to: "/hr/employees", label: "Employees", crumb: "Employees" },
   { to: "/hr/documents", label: "Review queue", crumb: "Review queue" },
+  { to: "/hr/tasks", label: "Tasks", crumb: "Tasks and activities" },
+  { to: "/hr/vault", label: "Document vault", crumb: "Publish documents" },
   { to: "/hr/document-settings", label: "Document settings", crumb: "Document settings" },
   { to: "/hr/audit", label: "Audit logs", crumb: "Audit logs" },
   { to: "/hr/notifications", label: "Notifications", crumb: "Notifications" },

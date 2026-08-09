@@ -16,6 +16,7 @@ from app.storage.minio import ensure_bucket_exists
 from app.audit.router import router as audit_router
 
 from app.notifications.router import router as notifications_router
+from app.tasks.router import router as tasks_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -47,6 +48,7 @@ app.include_router(employee_router)
 app.include_router(documents_router)
 app.include_router(audit_router)
 app.include_router(notifications_router)
+app.include_router(tasks_router)
 
 @app.get("/")
 def root():

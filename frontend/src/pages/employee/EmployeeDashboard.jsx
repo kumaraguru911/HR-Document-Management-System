@@ -7,6 +7,8 @@ function EmployeeDashboard() {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [completingTaskId, setCompletingTaskId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -20,13 +22,15 @@ function EmployeeDashboard() {
   const fetchDashboardData = async () => {
     try {
       setError("");
-      const [documentsResponse, notificationsResponse] = await Promise.all([
+      const [documentsResponse, notificationsResponse, tasksResponse] = await Promise.all([
         api.get("/documents/my/checklist"),
         api.get("/notifications/my"),
+        api.get("/tasks/my"),
       ]);
 
       setDocuments(documentsResponse.data || []);
       setNotifications(notificationsResponse.data || []);
+      setTasks(tasksResponse.data || []);
     } catch (err) {
       console.error("Dashboard data error:", err);
       const detail = err.response?.data?.detail;
@@ -162,6 +166,26 @@ function EmployeeDashboard() {
     navigate("/login", { replace: true });
   };
 
+  const completeTask = async (taskId) => {
+    try {
+      setCompletingTaskId(taskId);
+      await api.patch(`/tasks/${taskId}/complete`);
+      setTasks((current) => current.filter((task) => task.id !== taskId));
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Unable to complete this task.");
+    } finally {
+      setCompletingTaskId(null);
+    }
+  };
+
+  const taskDueLabel = (task) => {
+    if (task.days_until_due === null || task.days_until_due === undefined) return "No due date";
+    if (task.days_until_due < 0) return `${Math.abs(task.days_until_due)} day${Math.abs(task.days_until_due) === 1 ? "" : "s"} overdue`;
+    if (task.days_until_due === 0) return "Due today";
+    return `Due in ${task.days_until_due} day${task.days_until_due === 1 ? "" : "s"}`;
+  };
+
   return (
     <div className="page-shell">
       <section className="page-header hero-banner onboarding-hero">
@@ -201,7 +225,37 @@ function EmployeeDashboard() {
             <KpiWidget label="Required items" value={summary.total} detail="Documents expected for onboarding." />
             <KpiWidget label="Uploaded" value={summary.uploaded} detail="Items you have already submitted." tone="green" />
             <KpiWidget label="Status" value={summary.pending > 0 ? "In progress" : "Ready"} detail="Your next action is clear and visible." tone={summary.pending > 0 ? "amber" : "green"} />
+            <KpiWidget label="Open tasks" value={tasks.length} detail={tasks.length ? "Complete these to stay on track." : "You are all caught up."} tone={tasks.some((task) => task.days_until_due <= 0) ? "red" : "blue"} />
           </div>
+
+          <section className="panel-card employee-priorities">
+            <div className="panel-head">
+              <div>
+                <h3>My priorities</h3>
+                <p className="panel-subtitle">Tasks assigned by HR, ordered by their due date.</p>
+              </div>
+              <span className="pill-chip">{tasks.length} open</span>
+            </div>
+            {tasks.length ? (
+              <div className="task-list task-list--dashboard">
+                {tasks.slice(0, 4).map((task) => (
+                  <article className={`employee-task employee-task--${task.priority.toLowerCase()}`} key={task.id}>
+                    <div>
+                      <div className="employee-task__meta"><span className={`readiness-risk readiness-risk--${task.days_until_due <= 0 ? "high" : task.priority === "HIGH" ? "medium" : "low"}`}>{taskDueLabel(task)}</span><span>{task.priority.toLowerCase()} priority</span></div>
+                      <strong>{task.title}</strong>
+                      {task.description && <p>{task.description}</p>}
+                    </div>
+                    <div className="employee-task__actions">
+                      {task.action_url && <a className="text-btn" href={task.action_url}>Open</a>}
+                      <button type="button" className="secondary-btn" onClick={() => completeTask(task.id)} disabled={completingTaskId === task.id}>{completingTaskId === task.id ? "Completing…" : "Mark complete"}</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">No open tasks. You are all caught up.</div>
+            )}
+          </section>
 
           <div className="content-grid">
             <section className="panel-card panel-card--wide">

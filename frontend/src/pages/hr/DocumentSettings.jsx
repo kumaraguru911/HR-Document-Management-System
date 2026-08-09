@@ -10,6 +10,7 @@ function DocumentSettings() {
     name: "",
     description: "",
     tracks_expiry: false,
+    category: "ONBOARDING",
   });
 
   const [requirementForm, setRequirementForm] = useState({
@@ -117,6 +118,7 @@ function DocumentSettings() {
         name: typeForm.name.trim(),
         description: typeForm.description.trim(),
         tracks_expiry: typeForm.tracks_expiry,
+        category: typeForm.category,
       };
 
       const response = await api.post(
@@ -136,6 +138,7 @@ function DocumentSettings() {
         name: "",
         description: "",
         tracks_expiry: false,
+        category: "ONBOARDING",
       });
 
       // Refresh the list
@@ -294,6 +297,17 @@ function DocumentSettings() {
               placeholder="Explain what this document is for..."
               rows="3"
             />
+          </FormField>
+
+          <FormField label="Document category">
+            <select name="category" value={typeForm.category} onChange={handleTypeChange}>
+              <option value="ONBOARDING">Onboarding</option>
+              <option value="PAYSLIP">Payslip</option>
+              <option value="TAX">Tax document</option>
+              <option value="LETTER">Employment letter</option>
+              <option value="POLICY">Policy</option>
+              <option value="OTHER">Other</option>
+            </select>
           </FormField>
 
           <label className="field field-checkbox">

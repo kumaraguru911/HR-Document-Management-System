@@ -25,6 +25,7 @@ from app.documents.schemas import (
     DocumentRejectRequest,
     DocumentAccessResponse,
     DocumentExpiryResponse,
+    EmployeeVaultDocumentResponse,
 )
 from app.employees.models import Employee
 from app.documents.service import (
@@ -40,6 +41,8 @@ from app.documents.service import (
     get_document_access,
     get_my_documents,
     get_expiring_documents,
+    get_my_vault_documents,
+    publish_vault_document,
 )
 from app.storage.minio import stream_object
 
@@ -142,6 +145,41 @@ def my_document_submissions(
         )
 
     return documents
+
+
+@router.get("/vault/my", response_model=list[EmployeeVaultDocumentResponse])
+def my_document_vault(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_employee)
+):
+    documents = get_my_vault_documents(db, current_user.id)
+    if documents is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee profile not found")
+    return documents
+
+
+@router.post("/vault/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+async def upload_vault_document(
+    employee_id: int = Form(...),
+    document_type_id: int = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    employee = db.get(Employee, employee_id)
+    document_type = db.get(DocumentType, document_type_id)
+    if employee is None or document_type is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee or document type not found")
+    if not document_type.is_active or document_type.category.value == "ONBOARDING":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Select an active vault document type")
+    if file.content_type not in {"application/pdf", "image/jpeg", "image/png"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only PDF, JPEG and PNG files are allowed")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is empty")
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="File size cannot exceed 5 MB")
+    return publish_vault_document(db, employee, document_type, file.filename or "document", file.content_type, data, current_user.id)
 
 @router.post(
     "/my/upload/{document_type_id}",

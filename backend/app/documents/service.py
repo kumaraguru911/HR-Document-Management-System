@@ -5,6 +5,7 @@ from app.documents.models import (
     DocumentRequirement,
     DocumentType,
     Document,
+    DocumentCategory,
     DocumentStatus
 )
 from app.documents.schemas import (
@@ -48,7 +49,8 @@ def create_document_type(
     document_type = DocumentType(
         name=data.name,
         description=data.description,
-        tracks_expiry=data.tracks_expiry
+        tracks_expiry=data.tracks_expiry,
+        category=data.category,
     )
 
     db.add(document_type)
@@ -450,6 +452,69 @@ def get_expiring_documents(db: Session, within_days: int = 60):
             "rejection_reason": document.rejection_reason,
             "expiry_date": document.expiry_date,
             "days_until_expiry": (document.expiry_date - today).days,
+        }
+        for document in documents
+    ]
+
+
+def publish_vault_document(
+    db: Session,
+    employee: Employee,
+    document_type: DocumentType,
+    filename: str,
+    content_type: str,
+    file_data: bytes,
+    published_by: int,
+):
+    extension = Path(filename).suffix.lower()
+    object_key = f"employees/{employee.id}/vault/{document_type.id}/{uuid4()}{extension}"
+    upload_file(object_key=object_key, data=file_data, content_type=content_type)
+    now = datetime.now(timezone.utc)
+    document = Document(
+        employee_id=employee.id,
+        document_type_id=document_type.id,
+        original_filename=filename,
+        object_key=object_key,
+        content_type=content_type,
+        file_size=len(file_data),
+        status=DocumentStatus.APPROVED,
+        uploaded_by=published_by,
+        reviewed_by=published_by,
+        reviewed_at=now,
+    )
+    db.add(document)
+    db.flush()
+    create_notification(
+        db=db,
+        user_id=employee.user_id,
+        notification_type=NotificationType.VAULT_DOCUMENT_PUBLISHED,
+        title=f"New {document_type.category.value.lower()} document available",
+        message=f"{document_type.name} is now available in your document vault.",
+        document_id=document.id,
+    )
+    db.commit()
+    db.refresh(document)
+    return document
+
+
+def get_my_vault_documents(db: Session, user_id: int):
+    employee = db.scalar(select(Employee).where(Employee.user_id == user_id))
+    if employee is None:
+        return None
+    documents = db.scalars(
+        select(Document)
+        .join(DocumentType)
+        .where(Document.employee_id == employee.id, DocumentType.category != DocumentCategory.ONBOARDING)
+        .order_by(Document.uploaded_at.desc())
+    ).all()
+    return [
+        {
+            "id": document.id,
+            "document_type_name": document.document_type.name,
+            "category": document.document_type.category,
+            "original_filename": document.original_filename,
+            "uploaded_at": document.uploaded_at,
+            "file_size": document.file_size,
         }
         for document in documents
     ]

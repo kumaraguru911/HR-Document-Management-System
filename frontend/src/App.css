@@ -3205,6 +3205,36 @@
 .readiness-risk--medium { background: #fef3c7; color: #92400e; }
 .readiness-risk--low { background: #dcfce7; color: #166534; }
 
+.employee-priorities { margin: 16px 0; }
+.task-list--dashboard { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.employee-task { display: flex; justify-content: space-between; gap: 16px; padding: 14px; border: 1px solid #e2e8f0; border-left: 4px solid #60a5fa; border-radius: 14px; background: #f8fbff; }
+.employee-task--high { border-left-color: #ef4444; }
+.employee-task--medium { border-left-color: #f59e0b; }
+.employee-task__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 8px; color: #64748b; font-size: .78rem; text-transform: capitalize; }
+.employee-task p { margin: 5px 0 0; color: #64748b; font-size: .88rem; }
+.employee-task__actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+
+.vault-page { gap: 20px; }
+.vault-publish-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .65fr); gap: 18px; align-items: start; }
+.vault-publish-card { padding: 24px; gap: 22px; }
+.vault-publish-form { display: grid; gap: 20px; }
+.vault-publish-form__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.vault-file-section { display: grid; gap: 8px; }
+.field-label { color: #334155; font-size: .88rem; font-weight: 700; }
+.vault-publish-button { justify-self: start; min-width: 230px; }
+.vault-side-stack { gap: 18px; }
+.vault-summary-card { background: linear-gradient(145deg, #f8fbff, #eff6ff); }
+.vault-summary-card h3 { margin: 0; }
+.vault-summary-list { display: grid; gap: 14px; }
+.vault-summary-list div { display: grid; gap: 3px; padding-bottom: 12px; border-bottom: 1px solid #dbeafe; }
+.vault-summary-list div:last-child { padding-bottom: 0; border-bottom: 0; }
+.vault-summary-list span { color: #64748b; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.vault-summary-list strong { overflow-wrap: anywhere; color: #1e293b; }
+.vault-help-card { background: #fff; }
+.vault-help-card h3 { margin: 0; }
+.vault-help-card ol { display: grid; gap: 10px; margin: 0; padding-left: 22px; color: #475569; line-height: 1.45; }
+.vault-empty-card { max-width: 760px; padding: 28px; }
+
 .onboarding-lower {
   align-items: start;
 }
@@ -3429,6 +3459,11 @@
   align-items: start;
 }
 
+.dashboard-lower > .panel-card--wide {
+  min-height: 0;
+  align-self: start;
+}
+
 .dashboard-side-stack {
   gap: 16px;
 }
@@ -3530,4 +3565,7 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .vault-publish-layout,
+  .vault-publish-form__fields { grid-template-columns: 1fr; }
 }
