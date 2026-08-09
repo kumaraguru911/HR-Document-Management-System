@@ -359,7 +359,6 @@ function Employees() {
                       <p>{selectedEmployee.designation} • {selectedEmployee.department}</p>
                     </div>
                   </div>
-                  <button className="ghost-btn" onClick={() => setSelectedEmployee(null)}>Close</button>
                 </div>
 
                 <div className="crm-drawer__grid">
