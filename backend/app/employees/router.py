@@ -9,6 +9,7 @@ from app.employees.schemas import (
     EmployeeCreate,
     EmployeeInviteResponse,
     EmployeeListResponse,
+    EmployeeReadinessResponse,
     EmployeeResponse,
 )
 
@@ -17,6 +18,7 @@ from app.employees.service import (
     deactivate_employee,
     get_employee_by_id,
     get_employees,
+    get_employee_readiness,
     reactivate_employee,
     resend_invitation,
 )
@@ -81,6 +83,18 @@ def list_employees(
     current_user: User = Depends(require_hr)
 ):
     return get_employees(db)
+
+
+@router.get(
+    "/readiness",
+    response_model=list[EmployeeReadinessResponse]
+)
+def employee_readiness_queue(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_hr)
+):
+    """Prioritized readiness and risk signals for the HR dashboard."""
+    return get_employee_readiness(db)
 
 @router.get(
     "/{employee_id}",

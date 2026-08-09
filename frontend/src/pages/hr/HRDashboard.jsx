@@ -8,6 +8,7 @@ function HRDashboard() {
 
   const [user, setUser] = useState({});
   const [pendingDocuments, setPendingDocuments] = useState([]);
+  const [readinessQueue, setReadinessQueue] = useState([]);
   const [metrics, setMetrics] = useState({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -34,11 +35,12 @@ function HRDashboard() {
 
     const loadDashboardData = async () => {
       try {
-        const [pendingResponse, employeesResponse, notificationsResponse, auditResponse] = await Promise.all([
+        const [pendingResponse, employeesResponse, notificationsResponse, auditResponse, readinessResponse] = await Promise.all([
           api.get("/documents/pending"),
           api.get("/employees"),
           api.get("/notifications/my"),
           api.get("/audit"),
+          api.get("/employees/readiness"),
         ]);
 
         const pendingDocs = pendingResponse.data || [];
@@ -146,6 +148,7 @@ function HRDashboard() {
           unreadNotifications,
         });
         setPendingDocuments(pendingDocs.slice(0, 3));
+        setReadinessQueue((readinessResponse.data || []).filter((item) => item.risk_level !== "LOW").slice(0, 4));
         setActivityFeed(feed.slice(0, 6));
         setReviewTrend(days);
         setDepartmentBreakdown(departmentBreakdown);
@@ -245,6 +248,41 @@ function HRDashboard() {
             ))}
           </div>
         </ChartCard>
+      </section>
+
+      <section className="panel-card readiness-panel">
+        <div className="panel-head">
+          <div>
+            <h3>Readiness action queue</h3>
+            <p className="panel-subtitle">Prioritized from account activation, required documents, review status, and joining date.</p>
+          </div>
+          <button type="button" className="ghost-btn" onClick={() => navigate("/hr/employees")}>View employees</button>
+        </div>
+
+        {loading ? (
+          <div className="empty-state">Calculating onboarding readiness...</div>
+        ) : readinessQueue.length > 0 ? (
+          <div className="readiness-list">
+            {readinessQueue.map((employee) => (
+              <div className="readiness-item" key={employee.employee_id}>
+                <div className="readiness-score" aria-label={`${employee.readiness_score}% ready`}>
+                  <strong>{employee.readiness_score}%</strong>
+                  <span>ready</span>
+                </div>
+                <div className="readiness-item__details">
+                  <div className="readiness-item__title">
+                    <strong>{employee.employee_name}</strong>
+                    <span className={`readiness-risk readiness-risk--${employee.risk_level.toLowerCase()}`}>{employee.risk_level} risk</span>
+                  </div>
+                  <p>{employee.next_action}</p>
+                  <small>{employee.risk_reasons.join(" • ") || `${employee.approved_documents}/${employee.required_documents} required documents approved`}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">Everyone is currently on track for onboarding.</div>
+        )}
       </section>
 
       <section className="content-grid dashboard-lower">

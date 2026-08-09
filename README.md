@@ -8,6 +8,7 @@ OnboardIQ is a full-stack onboarding portal for collecting, reviewing, and track
 - Employees can activate their account, upload required documents, see HR feedback, and download previous submissions.
 - Both roles receive document-status notifications.
 - Two-factor authentication is available for account protection.
+- HR receives an explainable onboarding-readiness queue that prioritizes employees at risk of missing their joining date.
 - Files are stored in MinIO, with document metadata, users, requirements, notifications, and audit events stored in PostgreSQL.
 
 ## Tech stack
@@ -143,6 +144,7 @@ curl http://127.0.0.1:8000/health/database
 | --- | --- |
 | `/auth` | Registration, login, account activation, profile, and 2FA |
 | `/employees` | Employee invitations, directory, account state, and resend actions |
+| `/employees/readiness` | HR-only prioritized readiness scores, risk reasons, and recommended next actions |
 | `/documents` | Types, requirements, uploads, review actions, history, and downloads |
 | `/notifications` | Notification inbox and read-state updates |
 | `/audit` | HR activity history |

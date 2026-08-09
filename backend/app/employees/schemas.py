@@ -71,3 +71,24 @@ class EmployeeInviteResponse(BaseModel):
     is_active: bool
 
     invitation_sent: bool
+
+
+class EmployeeReadinessResponse(BaseModel):
+    """An explainable onboarding readiness assessment for the HR action queue."""
+
+    employee_id: int
+    employee_name: str
+    employee_code: str
+    department: str
+    joining_date: date
+    days_until_joining: int
+    readiness_score: int
+    risk_level: str
+    required_documents: int
+    approved_documents: int
+    pending_documents: int
+    missing_documents: int
+    rejected_documents: int
+    account_activated: bool
+    risk_reasons: list[str]
+    next_action: str
