@@ -5,7 +5,7 @@ from app.auth.dependencies import require_employee, require_hr
 from app.auth.models import User
 from app.database.session import get_db
 from app.tasks.schemas import EmployeeTaskResponse, TaskCreate
-from app.tasks.service import complete_task, create_task, get_my_tasks, get_tasks_for_hr
+from app.tasks.service import complete_task, create_task, get_my_tasks, get_tasks_for_hr, run_due_reminders
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -29,6 +29,11 @@ def my_tasks(db: Session = Depends(get_db), current_user: User = Depends(require
     if tasks is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee profile not found")
     return tasks
+
+
+@router.post("/reminders/run")
+def send_due_reminders(db: Session = Depends(get_db), current_user: User = Depends(require_hr)):
+    return run_due_reminders(db)
 
 
 @router.patch("/{task_id}/complete", response_model=EmployeeTaskResponse)

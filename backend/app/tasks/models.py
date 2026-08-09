@@ -1,7 +1,7 @@
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
@@ -17,6 +17,13 @@ class TaskPriority(str, enum.Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
+
+
+class TaskReminderKind(str, enum.Enum):
+    DUE_IN_7_DAYS = "DUE_IN_7_DAYS"
+    DUE_IN_3_DAYS = "DUE_IN_3_DAYS"
+    DUE_TODAY = "DUE_TODAY"
+    OVERDUE = "OVERDUE"
 
 
 class EmployeeTask(Base):
@@ -36,3 +43,15 @@ class EmployeeTask(Base):
 
     employee = relationship("Employee")
     assigner = relationship("User", foreign_keys=[assigned_by])
+
+
+class TaskReminder(Base):
+    __tablename__ = "task_reminders"
+    __table_args__ = (UniqueConstraint("task_id", "kind", name="uq_task_reminder_kind"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("employee_tasks.id"), nullable=False, index=True)
+    kind: Mapped[TaskReminderKind] = mapped_column(Enum(TaskReminderKind, name="task_reminder_kind"), nullable=False)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    task = relationship("EmployeeTask")

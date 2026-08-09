@@ -8,6 +8,7 @@ function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [reminding, setReminding] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ employee_id: "", title: "", description: "", due_date: "", priority: "MEDIUM", action_url: "" });
   const showToast = useToast();
@@ -38,8 +39,18 @@ function Tasks() {
     } finally { setSaving(false); }
   };
 
+  const sendReminders = async () => {
+    try {
+      setReminding(true);
+      const { data } = await api.post("/tasks/reminders/run");
+      showToast(data.reminders_sent ? `${data.reminders_sent} reminder${data.reminders_sent === 1 ? "" : "s"} sent.` : "No reminders are due today.");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Unable to run task reminders.");
+    } finally { setReminding(false); }
+  };
+
   return <div className="page-shell">
-    <PageHeader eyebrow="Employee operations" title="Tasks and activities" description="Assign clear next steps and due dates so employees always know what to do next." />
+    <PageHeader eyebrow="Employee operations" title="Tasks and activities" description="Assign clear next steps and due dates so employees always know what to do next." actions={<button type="button" className="secondary-btn" onClick={sendReminders} disabled={reminding}>{reminding ? "Sending…" : "Send due reminders"}</button>} />
     {error && <div className="alert alert-error">{error}</div>}
     <section className="panel-card">
       <div className="panel-head"><div><h3>Assign a task</h3><p className="panel-subtitle">The employee receives an in-app notification immediately.</p></div></div>

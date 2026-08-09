@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.employees.models import Employee
 from app.notifications.models import NotificationType
 from app.notifications.service import create_notification
-from app.tasks.models import EmployeeTask, TaskStatus
+from app.tasks.models import EmployeeTask, TaskReminder, TaskReminderKind, TaskStatus
 from app.tasks.schemas import TaskCreate
 
 
@@ -85,3 +85,40 @@ def complete_task(db: Session, task_id: int, user_id: int):
     db.commit()
     db.refresh(task)
     return _serialize(task)
+
+
+def run_due_reminders(db: Session) -> dict:
+    """Create each milestone reminder once; safe to invoke every day."""
+    today = date.today()
+    tasks = db.scalars(
+        select(EmployeeTask)
+        .options(selectinload(EmployeeTask.employee), selectinload(EmployeeTask.assigner))
+        .where(EmployeeTask.status == TaskStatus.PENDING, EmployeeTask.due_date.is_not(None))
+    ).all()
+    sent = 0
+    milestones = {7: TaskReminderKind.DUE_IN_7_DAYS, 3: TaskReminderKind.DUE_IN_3_DAYS, 0: TaskReminderKind.DUE_TODAY}
+
+    for task in tasks:
+        days_until_due = (task.due_date - today).days
+        kind = milestones.get(days_until_due, TaskReminderKind.OVERDUE if days_until_due < 0 else None)
+        if kind is None:
+            continue
+        already_sent = db.scalar(select(TaskReminder.id).where(TaskReminder.task_id == task.id, TaskReminder.kind == kind))
+        if already_sent:
+            continue
+        if kind == TaskReminderKind.OVERDUE:
+            title = "Task overdue"
+            message = f"{task.title} was due on {task.due_date.isoformat()}. Please complete it or contact HR."
+            notification_type = NotificationType.TASK_OVERDUE
+        else:
+            day_label = "today" if days_until_due == 0 else f"in {days_until_due} days"
+            title = "Task due reminder"
+            message = f"{task.title} is due {day_label} ({task.due_date.isoformat()})."
+            notification_type = NotificationType.TASK_DUE_REMINDER
+        create_notification(db, task.employee.user_id, notification_type, title, message)
+        if kind == TaskReminderKind.OVERDUE:
+            create_notification(db, task.assigned_by, notification_type, f"Employee task overdue: {task.employee.first_name} {task.employee.last_name}", message)
+        db.add(TaskReminder(task_id=task.id, kind=kind))
+        sent += 1
+    db.commit()
+    return {"reminders_sent": sent}
